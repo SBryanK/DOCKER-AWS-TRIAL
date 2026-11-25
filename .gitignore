@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local tooling caches (kept inside the repo when the host cache is sandboxed)
+.uv-cache/
+.pip-cache/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+.aws/
+
+# Generated data / artefacts
+data/index/
+data/uploads/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

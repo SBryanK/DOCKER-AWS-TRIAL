@@ -1,0 +1,27 @@
+# Version control + CI
+.git
+.github
+
+# Local env / tooling
+.venv
+.uv-cache
+.pip-cache
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+
+# Secrets — never bake these into an image
+.env
+.env.*
+.aws
+
+# Generated and host-only data (mounted at runtime instead)
+data
+eval
+tests
+docs
+*.md
+Makefile
+
+# Keep the build context small and cache-friendly

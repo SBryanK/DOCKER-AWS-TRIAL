@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check app tests scripts
+      - name: Test
+        run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build -t policy-rag:ci .
+      - name: Smoke-test the image
+        run: |
+          docker run -d --name api -p 8000:8000 policy-rag:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:8000/health
+          docker rm -f api

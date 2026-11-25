@@ -1,0 +1,61 @@
+name: policy-rag
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    container_name: policy-rag-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      # Named volume: vectors survive `docker compose restart` / `down` / `up`.
+      - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: policy-rag:latest
+    container_name: policy-rag-api
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # Offline demo defaults. Set these to bedrock + credentials for real calls.
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-local}
+      LLM_PROVIDER: ${LLM_PROVIDER:-local}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-1}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      VECTOR_BACKEND: qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: policy_chunks
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
+      EMBEDDING_MODEL_ID: ${EMBEDDING_MODEL_ID:-amazon.titan-embed-text-v2:0}
+      LLM_MODEL_ID: ${LLM_MODEL_ID:-apac.amazon.nova-lite-v1:0}
+      CHUNK_SIZE: ${CHUNK_SIZE:-900}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-150}
+      TOP_K: ${TOP_K:-4}
+      MIN_SCORE: ${MIN_SCORE:-0.10}
+      DATA_DIR: /data
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # Read-only corpus so POST /ingest/sample works inside the container.
+      - ./data/policies:/data/policies:ro
+      # Named volume for uploads; the numpy backend also keeps its index here.
+      - index_data:/data
+      # To use real Bedrock calls, mount your local credentials read-only and
+      # set AWS_PROFILE / provider env vars (never bake keys into the image):
+      # - ${HOME}/.aws:/home/app/.aws:ro
+    restart: unless-stopped
+
+volumes:
+  qdrant_storage:
+  index_data:

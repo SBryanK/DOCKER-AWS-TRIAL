@@ -1,0 +1,13 @@
+# Deliberately naive image — baseline for the size/security comparison.
+# Single stage, full Python image, runs as root, no healthcheck, no lock file.
+FROM python:3.13
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
