@@ -8,6 +8,8 @@ Built as a portfolio project for Data Science / Solutions Architect roles: the i
 part is not the demo, it is the engineering decisions around retrieval, container size,
 credential handling and reproducible evaluation.
 
+![CI](https://github.com/SBryanK/DOCKER-AWS-TRIAL/actions/workflows/ci.yml/badge.svg)
+
 **Repo:** https://github.com/SBryanK/DOCKER-AWS-TRIAL
 **Website:** https://sbryank.github.io/DOCKER-AWS-TRIAL/
 **API (local):** http://localhost:8000 · **Swagger:** http://localhost:8000/docs

@@ -115,6 +115,8 @@ Python 3.13.18 · AWS CLI not installed at start · repo pushed to GitHub.
   **100%**, grounded **100%**, term coverage **42%**.
 - 18 tests pass.
 - Repo pushed to https://github.com/SBryanK/DOCKER-AWS-TRIAL
+- GitHub Actions CI green (lint + 18 tests + Docker build smoke test)
+- GitHub Pages enabled from `/docs` → https://sbryank.github.io/DOCKER-AWS-TRIAL/ (HTTP 200 verified)
 
 **Next (requires Bryan's AWS account)**
 1. Install AWS CLI: `brew install awscli`.
@@ -129,7 +131,7 @@ Python 3.13.18 · AWS CLI not installed at start · repo pushed to GitHub.
 - Titan V2 in Singapore: docs vs price-list conflict (see `docs/AWS_NOTES.md`).
 - Nova Micro APAC profile and numeric quotas are unverified.
 - Offline-only eval numbers must not be presented as Bedrock quality.
-- GitHub Pages needs to be enabled after push (Settings → Pages → `/docs`).
+- Bedrock mode (providers, prompt, token accounting) is unverified against the live API.
 
 ---
 
