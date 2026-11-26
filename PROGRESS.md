@@ -50,7 +50,7 @@ Python 3.13.18 · AWS CLI not installed at start · repo pushed to GitHub.
 
 **Open issues**
 - Offline answer quality is limited by design (lexical embedder, extractive answers):
-  eval term coverage 42%.
+  eval term coverage 58.3%.
 - Titan V2 availability in `ap-southeast-1` is contradictory in AWS docs → verify.
 
 ---
@@ -105,17 +105,22 @@ Python 3.13.18 · AWS CLI not installed at start · repo pushed to GitHub.
   trade-offs, enterprise scale, cleanup.
 - `TUTORIAL.md`: full teacher-style walkthrough + 15 check questions.
 - `docs/AWS_NOTES.md`: verified AWS facts with citations + items to verify.
-- `docs/index.html`: portfolio website for GitHub Pages (no build step).
-- `eval/questions.jsonl`, `eval/results.json`, `eval/report.md`.
+- `docs/index.html`: bilingual (EN/ID) portfolio website with light/dark themes,
+  no build step.
+- `eval/questions.jsonl`, `eval/results.json`, `eval/report.md`,
+  `eval/functional_results.json`.
 - CI workflow: ruff + pytest + Docker build.
 - `scripts/check_bedrock.py`, `scripts/setup_budget.py`, `scripts/cleanup_aws.py`.
 
 **Evidence (offline mode)**
-- 10 questions: p50 **15 ms**, p95 **16 ms**, retrieval hit **100%**, citation hit
-  **100%**, grounded **100%**, term coverage **42%**.
+- 10 questions (compose/Qdrant, offline mode): p50 **4.8 ms**, p95 **7.6 ms**,
+  retrieval hit **100%**, citation hit **100%**, grounded **100%**, term coverage **58.3%**.
+- Functional test: **29/29 checks passed** against the running compose stack.
+- Website: bilingual EN/ID + light/dark themes, toggle state persisted; CDP test passed
+  with 0 JavaScript exceptions.
 - 18 tests pass.
 - Repo pushed to https://github.com/SBryanK/DOCKER-AWS-TRIAL
-- GitHub Actions CI green (lint + 18 tests + Docker build smoke test)
+- GitHub Actions CI green (lint + 18 tests + Docker build + functional smoke test)
 - GitHub Pages enabled from `/docs` → https://sbryank.github.io/DOCKER-AWS-TRIAL/ (HTTP 200 verified)
 
 **Next (requires Bryan's AWS account)**

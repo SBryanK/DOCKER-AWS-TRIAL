@@ -16,6 +16,13 @@ credential handling and reproducible evaluation.
 
 ![PolicyLens website](docs/assets/website-hero.png)
 
+<details>
+<summary>Light theme · Bahasa Indonesia</summary>
+
+![Website with light theme and Indonesian copy](docs/assets/website-light-id.png)
+
+</details>
+
 ---
 
 ## What it does
@@ -91,8 +98,11 @@ curl -X POST http://localhost:8000/ask \
 Open http://localhost:8000 for the demo UI, http://localhost:8000/docs for OpenAPI.
 
 ![Demo UI](docs/assets/ui.png)
-Measured on the author's machine (Apple M5 Pro, Docker Desktop): ingest **2.0 s** for
-205 pages / 719 chunks; API answers **~15 ms** p50 in offline mode.
+
+The site is **bilingual (English / Indonesian)** with **light and dark themes**,
+switchable from the top-right corner. Measured on the author's machine (Apple M5 Pro,
+Docker Desktop): ingest **2.0 s** for 205 pages / 719 chunks; the compose/Qdrant stack
+answers in **~5 ms** p50 in offline mode.
 
 ### Local development (without Docker)
 
@@ -103,6 +113,7 @@ cp .env.example .env                 # offline defaults
 .venv/bin/python -m scripts.ingest   # build the numpy index
 .venv/bin/uvicorn app.main:app --reload --port 8000
 .venv/bin/pytest                     # 18 tests
+.venv/bin/python -m scripts.functional_test   # 29 end-to-end API checks (API must run)
 ```
 
 ## Bedrock mode (real model calls)
@@ -145,6 +156,9 @@ instead of hard-coding trust in an old tutorial.
 | `POST` | `/ingest/sample` | Ingest the bundled `data/policies` corpus |
 | `POST` | `/ask` | `{"question": "...", "top_k": 4}` → grounded answer + citations |
 | `GET` | `/docs` | OpenAPI/Swagger UI |
+
+All endpoints are also covered by `scripts/functional_test.py` (29 checks: happy paths,
+validation errors, uploads, reset semantics, grounded refusals, corpus restore).
 
 <details>
 <summary>Example <code>/ask</code> response (abridged)</summary>
@@ -191,20 +205,20 @@ expected document and expected terms, measured client-side.
 | Metric | Result |
 |---|---|
 | Questions | 10 |
-| Latency p50 / p95 | **15 ms / 16 ms** |
+| Latency p50 / p95 | **4.8 ms / 7.6 ms** |
 | Expected source retrieved in top-4 | **100%** |
 | Expected source actually cited | **100%** |
 | Answers with ≥1 used citation | **100%** |
 | Grounded flag | **100%** |
-| Expected-term coverage | **42%** |
+| Expected-term coverage | **58%** |
 
 **Read this honestly.** These numbers were produced in **offline extractive mode**
-(deterministic hashed embeddings + sentence-copying answerer) because no AWS credentials
-were available in the build environment. Retrieval/citation metrics describe the RAG
-plumbing; the 42% term coverage exposes the ceiling of a lexical fallback — it copies
-sentences rather than answering fluently. Bedrock mode must be re-measured with real
-credentials (`scripts/run_eval`) before quoting answer-quality numbers. No AWS cost was
-incurred during this build.
+(deterministic hashed embeddings + sentence-copying answerer) on the compose/Qdrant
+stack, because no AWS credentials were available in the build environment.
+Retrieval/citation metrics describe the RAG plumbing; the 58% term coverage exposes the
+ceiling of a lexical fallback — it copies sentences rather than answering fluently.
+Bedrock mode must be re-measured with real credentials (`scripts/run_eval`) before
+quoting answer-quality numbers. No AWS cost was incurred during this build.
 
 ## Docker engineering (measured)
 
@@ -285,10 +299,10 @@ retrieval evaluation in CI with a golden set.
 
 ```
 app/                 FastAPI app, chunking, embeddings, LLM, vector store, UI
-scripts/             ingest CLI, eval runner, Bedrock verifier, budget/cleanup
+scripts/             ingest CLI, eval runner, functional tests, Bedrock verifier, budget/cleanup
 tests/               18 pytest tests (chunking, retrieval, API, persistence)
 data/policies/       3 public PDFs + provenance/checksums
-eval/                10 questions, results.json, report.md
+eval/                10 questions, results.json, functional_results.json, report.md
 docs/                GitHub Pages website + AWS notes
 Dockerfile           production multi-stage image
 docker/              deliberately naive baseline Dockerfile

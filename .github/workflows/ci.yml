@@ -31,12 +31,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build production image
         run: docker build -t policy-rag:ci .
-      - name: Smoke-test the image
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install test client
+        run: pip install httpx
+      - name: Start container with sample corpus
         run: |
-          docker run -d --name api -p 8000:8000 policy-rag:ci
-          for i in $(seq 1 30); do
+          docker run -d --name api -p 8000:8000 \
+            -v "$PWD/data/policies:/data/policies:ro" policy-rag:ci
+          for i in $(seq 1 40); do
             if curl -sf http://localhost:8000/health >/dev/null; then break; fi
             sleep 1
           done
           curl -sf http://localhost:8000/health
-          docker rm -f api
+      - name: Functional API tests (29 checks)
+        run: python -m scripts.functional_test --base-url http://localhost:8000
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs api
+      - name: Stop container
+        if: always()
+        run: docker rm -f api

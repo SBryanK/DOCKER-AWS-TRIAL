@@ -1,24 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>PolicyLens — Policy Q&A RAG API on Bedrock, in Docker</title>
 <meta name="description" content="Grounded policy Q&A API: FastAPI + hybrid retrieval + Amazon Bedrock, shipped as a 429 MB non-root Docker image with Qdrant and reproducible evaluation." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%235eead4'/><text x='50' y='70' font-size='58' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%2307161d'>P</text></svg>" />
+<script>
+  // Apply the saved theme and language before the first paint (no flash).
+  (function () {
+    try {
+      var params = new URLSearchParams(location.search);
+      var storedTheme = params.get("theme") || localStorage.getItem("theme");
+      var systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var theme = storedTheme || (systemDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+
+      var storedLang = params.get("lang") || localStorage.getItem("lang");
+      var browserLang = (navigator.language || "en").toLowerCase();
+      var lang = storedLang || (browserLang.indexOf("id") === 0 ? "id" : "en");
+      document.documentElement.setAttribute("lang", lang);
+    } catch (error) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.setAttribute("lang", "en");
+    }
+  })();
+</script>
 <style>
   :root {
+    --max: 1120px;
+    --radius: 20px;
     --bg: #07111a;
-    --bg-2: #0a1724;
-    --card: rgba(255, 255, 255, 0.045);
+    --nav-bg: rgba(7, 17, 26, 0.74);
+    --card: rgba(255, 255, 255, 0.048);
+    --card-solid: rgba(255, 255, 255, 0.06);
+    --arch-bg: rgba(3, 10, 18, 0.42);
     --line: rgba(148, 163, 184, 0.18);
     --text: #e8f1f8;
     --muted: #93a6b8;
     --accent: #5eead4;
     --accent-2: #818cf8;
+    --accent-soft: rgba(94, 234, 212, 0.08);
     --warn: #fbbf24;
-    --max: 1120px;
-    --radius: 20px;
+    --warn-soft: rgba(251, 191, 36, 0.06);
+    --warn-line: rgba(251, 191, 36, 0.3);
+    --code-bg: #04101a;
+    --code-text: #dbeafe;
+    --code-muted: #6b8fa3;
+    --bar-track: rgba(148, 163, 184, 0.14);
+    --shadow: 0 30px 60px -44px rgba(0, 0, 0, 0.9);
+    --glow-1: rgba(129, 140, 248, 0.22);
+    --glow-2: rgba(94, 234, 212, 0.14);
+    --btn-primary-bg: linear-gradient(135deg, #5eead4, #22d3ee);
+    --btn-primary-text: #04141b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7fb;
+    --nav-bg: rgba(244, 247, 251, 0.86);
+    --card: #ffffff;
+    --card-solid: #ffffff;
+    --arch-bg: #ffffff;
+    --line: rgba(15, 23, 42, 0.13);
+    --text: #0f172a;
+    --muted: #52657c;
+    --accent: #0f766e;
+    --accent-2: #4f46e5;
+    --accent-soft: rgba(15, 118, 110, 0.08);
+    --warn: #b45309;
+    --warn-soft: rgba(180, 83, 9, 0.07);
+    --warn-line: rgba(180, 83, 9, 0.32);
+    --code-bg: #0b1220;
+    --code-text: #e2e8f0;
+    --code-muted: #7f9cb3;
+    --bar-track: rgba(15, 23, 42, 0.1);
+    --shadow: 0 24px 48px -34px rgba(15, 23, 42, 0.35);
+    --glow-1: rgba(79, 70, 229, 0.10);
+    --glow-2: rgba(13, 148, 136, 0.10);
+    --btn-primary-bg: linear-gradient(135deg, #0f766e, #115e59);
+    --btn-primary-text: #ffffff;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -28,56 +87,69 @@
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     line-height: 1.6;
     background:
-      radial-gradient(1000px 540px at 12% -10%, rgba(129, 140, 248, 0.22), transparent 62%),
-      radial-gradient(900px 520px at 96% 2%, rgba(94, 234, 212, 0.14), transparent 58%),
+      radial-gradient(1000px 540px at 12% -10%, var(--glow-1), transparent 62%),
+      radial-gradient(900px 520px at 96% 2%, var(--glow-2), transparent 58%),
       var(--bg);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   .wrap { width: min(var(--max), 92vw); margin: 0 auto; }
   .nav {
     position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px);
-    background: rgba(7, 17, 26, 0.72); border-bottom: 1px solid var(--line);
+    background: var(--nav-bg); border-bottom: 1px solid var(--line);
   }
-  .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; }
   .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: 0.2px; }
   .logo {
     width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #06131b; font-weight: 800;
   }
-  .nav-links { display: flex; gap: 20px; font-size: 13.5px; }
+  :root[data-theme="light"] .logo { color: #ffffff; }
+  .nav-right { display: flex; align-items: center; gap: 18px; }
+  .nav-links { display: flex; gap: 19px; font-size: 13.5px; }
   .nav-links a { color: var(--muted); }
   .nav-links a:hover { color: var(--text); text-decoration: none; }
-  @media (max-width: 720px) { .nav-links { display: none; } }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer;
+    min-width: 38px; height: 34px; padding: 0 10px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    transition: border-color 0.15s, transform 0.08s, background 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+  .icon-btn:active { transform: translateY(1px); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 820px) { .nav-links { display: none; } }
 
-  .hero { padding: 78px 0 30px; display: grid; gap: 22px; }
+  .hero { padding: 76px 0 26px; display: grid; gap: 20px; }
   .eyebrow {
     display: inline-flex; align-items: center; gap: 9px; width: fit-content;
     font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent);
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
-  h1 { margin: 0; font-size: clamp(36px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; }
-  h1 .grad { background: linear-gradient(92deg, var(--accent), #7dd3fc 45%, var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lede { margin: 0; max-width: 760px; color: var(--muted); font-size: 17px; }
-  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+  h1 { margin: 0; font-size: clamp(36px, 6vw, 62px); line-height: 1.04; letter-spacing: -0.03em; }
+  h1 .grad { background: linear-gradient(92deg, var(--accent), #0ea5e9 46%, var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { margin: 0; max-width: 780px; color: var(--muted); font-size: 17px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
   .btn {
     display: inline-flex; align-items: center; gap: 8px; padding: 11px 19px; border-radius: 11px;
-    font-size: 14px; font-weight: 600; border: 1px solid transparent;
+    font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer;
   }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #7dd3fc); color: #04141b; }
-  .btn-primary:hover { text-decoration: none; filter: brightness(1.06); }
-  .btn-ghost { border-color: var(--line); color: var(--text); }
-  .btn-ghost:hover { border-color: rgba(94, 234, 212, 0.45); text-decoration: none; }
+  .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
+  .btn-primary:hover { text-decoration: none; filter: brightness(1.05); }
+  .btn-ghost { border-color: var(--line); color: var(--text); background: transparent; }
+  .btn-ghost:hover { border-color: var(--accent); text-decoration: none; }
 
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
   .badge { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; background: var(--card); }
 
-  section { padding: 56px 0; }
+  section { padding: 54px 0; }
   .section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
   h2 { margin: 0; font-size: clamp(25px, 3.4vw, 36px); letter-spacing: -0.02em; }
-  .section-head p { margin: 0; color: var(--muted); max-width: 560px; font-size: 14.5px; }
+  .section-head p { margin: 0; color: var(--muted); max-width: 580px; font-size: 14.5px; }
 
   .grid { display: grid; gap: 14px; }
   .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -88,7 +160,7 @@
 
   .metric {
     border: 1px solid var(--line); border-radius: 16px; padding: 18px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015));
+    background: var(--card); box-shadow: var(--shadow);
   }
   .metric .value { font-size: 29px; font-weight: 750; letter-spacing: -0.02em; }
   .metric .label { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
@@ -96,7 +168,7 @@
 
   .card {
     border: 1px solid var(--line); border-radius: var(--radius); padding: 22px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    background: var(--card); box-shadow: var(--shadow);
   }
   .card h3 { margin: 0 0 8px; font-size: 16px; }
   .card p { margin: 0; color: var(--muted); font-size: 13.8px; }
@@ -104,21 +176,21 @@
   .card li { margin: 5px 0; }
   .kicker { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
 
-  /* Architecture diagram */
   .arch {
     display: grid; grid-template-columns: 1fr 1.55fr 1fr; gap: 0; align-items: stretch;
-    border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: rgba(3, 10, 18, 0.4);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: var(--arch-bg);
+    box-shadow: var(--shadow);
   }
   .arch-col { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .arch-col h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); }
   .node {
-    border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: var(--card-solid);
     font-size: 12.5px; line-height: 1.4;
   }
   .node b { display: block; font-size: 13px; margin-bottom: 2px; }
   .node span { color: var(--muted); }
-  .node.api { border-color: rgba(94, 234, 212, 0.35); background: rgba(94, 234, 212, 0.06); }
-  .node.aws { border-color: rgba(129, 140, 248, 0.35); background: rgba(129, 140, 248, 0.07); }
+  .node.api { border-color: var(--accent); background: var(--accent-soft); }
+  .node.aws { border-color: var(--accent-2); background: var(--accent-soft); }
   .arrow { display: grid; place-items: center; color: var(--accent); font-size: 20px; min-height: 34px; }
   .arch-mid { border-left: 1px dashed var(--line); border-right: 1px dashed var(--line); padding: 0 18px; margin: 0 6px; }
   @media (max-width: 820px) {
@@ -127,10 +199,10 @@
     .arrow { transform: rotate(90deg); min-height: 26px; }
   }
 
-  .steps { counter-reset: step; display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0,1fr)); }
-  @media (max-width: 940px) { .steps { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  .steps { counter-reset: step; display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (max-width: 940px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
-  .step { border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: var(--card); position: relative; }
+  .step { border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: var(--card); box-shadow: var(--shadow); }
   .step::before {
     counter-increment: step; content: "0" counter(step);
     font-size: 11px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700;
@@ -140,13 +212,14 @@
 
   pre {
     margin: 0; padding: 16px 17px; border-radius: 13px; overflow-x: auto;
-    background: #04101a; border: 1px solid var(--line); font-size: 12.7px; line-height: 1.6;
+    background: var(--code-bg); border: 1px solid var(--line); font-size: 12.7px; line-height: 1.6;
+    color: var(--code-text);
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .code-label { font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-  .tok-c { color: #6b8fa3; } .tok-a { color: var(--accent); } .tok-b { color: #c7d2fe; }
+  .tok-c { color: var(--code-muted); } .tok-a { color: var(--accent); } .tok-b { color: #c7d2fe; }
 
-  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
   table { width: 100%; border-collapse: collapse; font-size: 13.3px; min-width: 560px; }
   th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); }
   th { font-size: 11px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
@@ -157,39 +230,46 @@
 
   .bars { display: grid; gap: 14px; margin-top: 8px; }
   .bar-row { display: grid; grid-template-columns: 140px 1fr 70px; gap: 12px; align-items: center; font-size: 12.5px; }
-  .bar-track { height: 12px; border-radius: 999px; background: rgba(148,163,184,0.12); overflow: hidden; }
+  .bar-track { height: 12px; border-radius: 999px; background: var(--bar-track); overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 999px; }
   .bar-fill.bad { width: 100%; background: linear-gradient(90deg, #f87171, #fb923c); }
-  .bar-fill.good { width: 23.4%; background: linear-gradient(90deg, var(--accent), #7dd3fc); }
+  .bar-fill.good { width: 23.4%; background: linear-gradient(90deg, var(--accent), #22d3ee); }
   @media (max-width: 560px) { .bar-row { grid-template-columns: 100px 1fr; } .bar-row span:last-child { grid-column: 2; } }
 
   .callout {
-    border: 1px solid rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.055);
-    border-radius: 16px; padding: 18px 20px; font-size: 13.8px; color: #f4e2b8;
+    border: 1px solid var(--warn-line); background: var(--warn-soft);
+    border-radius: 16px; padding: 18px 20px; font-size: 13.8px; color: var(--text);
   }
   .callout b { color: var(--warn); }
 
   .split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 16px; align-items: start; }
   @media (max-width: 940px) { .split { grid-template-columns: 1fr; } }
 
-  footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 30px 0 44px; color: var(--muted); font-size: 13px; }
+  footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 30px 0 46px; color: var(--muted); font-size: 13px; }
   .foot-inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
   .foot-links { display: flex; flex-wrap: wrap; gap: 18px; }
   .small { font-size: 12px; color: var(--muted); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="wrap nav-inner">
-    <div class="brand"><span class="logo">P</span> PolicyLens</div>
-    <div class="nav-links">
-      <a href="#architecture">Architecture</a>
-      <a href="#results">Results</a>
-      <a href="#docker">Docker</a>
-      <a href="#quickstart">Quickstart</a>
-      <a href="#notes">AWS notes</a>
-      <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL" target="_blank" rel="noreferrer">GitHub ↗</a>
+    <div class="brand"><span class="logo" aria-hidden="true">P</span> PolicyLens</div>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#architecture" data-i18n="nav.architecture">Architecture</a>
+        <a href="#results" data-i18n="nav.results">Results</a>
+        <a href="#docker" data-i18n="nav.docker">Docker</a>
+        <a href="#quickstart" data-i18n="nav.quickstart">Quickstart</a>
+        <a href="#notes" data-i18n="nav.notes">AWS notes</a>
+        <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL" target="_blank" rel="noreferrer"><span data-i18n="nav.github">GitHub</span> ↗</a>
+      </div>
+      <div class="controls">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Switch to light theme" data-i18n-aria="aria.theme">☀️</button>
+        <button id="lang-toggle" class="icon-btn" type="button" aria-label="Switch to Indonesian">ID</button>
+      </div>
     </div>
   </div>
 </nav>
@@ -198,35 +278,36 @@
 
   <!-- HERO -->
   <header class="hero">
-    <span class="eyebrow"><span class="dot"></span> Portfolio project · Docker + Amazon Bedrock + Qdrant</span>
-    <h1>Grounded policy answers,<br /><span class="grad">shipped in a 429 MB container.</span></h1>
-    <p class="lede">
+    <span class="eyebrow"><span class="dot" aria-hidden="true"></span> <span data-i18n="hero.eyebrow">Portfolio project · Docker + Amazon Bedrock + Qdrant</span></span>
+    <h1><span data-i18n="hero.title1">Grounded policy answers,</span><br /><span class="grad" data-i18n="hero.title2">shipped in a 429 MB container.</span></h1>
+    <p class="lede" data-i18n="hero.lede">
       A retrieval-augmented Q&amp;A API over 205 pages of public AI-policy PDFs. Every answer
       cites the document and page it came from. Two interchangeable backends: real
       Amazon Bedrock, or a fully offline mode that runs the whole demo without an AWS account.
     </p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/SBryanK/DOCKER-AWS-TRIAL" target="_blank" rel="noreferrer">View the repository →</a>
-      <a class="btn btn-ghost" href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/TUTORIAL.md" target="_blank" rel="noreferrer">Read the tutorial</a>
-      <a class="btn btn-ghost" href="#results">See measured results</a>
+      <a class="btn btn-primary" href="https://github.com/SBryanK/DOCKER-AWS-TRIAL" target="_blank" rel="noreferrer"><span data-i18n="hero.ctaRepo">View the repository</span> →</a>
+      <a class="btn btn-ghost" href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/TUTORIAL.md" target="_blank" rel="noreferrer" data-i18n="hero.ctaTutorial">Read the tutorial</a>
+      <a class="btn btn-ghost" href="#results" data-i18n="hero.ctaResults">See measured results</a>
     </div>
     <div class="badges">
-      <span class="badge">FastAPI · Python 3.13</span>
-      <span class="badge">Hybrid retrieval (vector + BM25)</span>
-      <span class="badge">Amazon Nova Lite / Titan</span>
-      <span class="badge">Qdrant named volume</span>
-      <span class="badge">18 pytest tests</span>
-      <span class="badge">GitHub Actions CI</span>
+      <span class="badge" data-i18n="badge.fastapi">FastAPI · Python 3.13</span>
+      <span class="badge" data-i18n="badge.hybrid">Hybrid retrieval (vector + BM25)</span>
+      <span class="badge" data-i18n="badge.bedrock">Amazon Nova Lite / Titan</span>
+      <span class="badge" data-i18n="badge.qdrant">Qdrant named volume</span>
+      <span class="badge" data-i18n="badge.tests">18 pytest tests</span>
+      <span class="badge" data-i18n="badge.i18n">Bilingual EN/ID · light/dark</span>
+      <span class="badge" data-i18n="badge.ci">GitHub Actions CI</span>
     </div>
   </header>
 
   <!-- METRICS -->
   <section id="metrics" style="padding-top: 8px;">
     <div class="grid grid-4">
-      <div class="metric"><div class="value">719</div><div class="label">chunks indexed from 3 public PDFs</div><div class="sub">205 pages · ~120k tokens</div></div>
-      <div class="metric"><div class="value">15 ms</div><div class="label">p50 answer latency (offline mode, 10 questions)</div><div class="sub">p95 16 ms · localhost stack</div></div>
-      <div class="metric"><div class="value">429 MB</div><div class="label">production image, non-root, healthy</div><div class="sub">vs 1.83 GB naive image</div></div>
-      <div class="metric"><div class="value">$0.005</div><div class="label">estimated Bedrock cost per full run</div><div class="sub">published ap-southeast-1 rates</div></div>
+      <div class="metric"><div class="value">719</div><div class="label" data-i18n="metric.chunks">chunks indexed from 3 public PDFs</div><div class="sub" data-i18n="metric.chunksSub">205 pages · ~120k tokens</div></div>
+      <div class="metric"><div class="value">5 ms</div><div class="label" data-i18n="metric.latency">p50 answer latency (offline mode, 10 questions)</div><div class="sub" data-i18n="metric.latencySub">p95 7.6 ms · localhost stack</div></div>
+      <div class="metric"><div class="value">429 MB</div><div class="label" data-i18n="metric.size">production image, non-root, healthy</div><div class="sub" data-i18n="metric.sizeSub">vs 1.83 GB naive image</div></div>
+      <div class="metric"><div class="value">$0.005</div><div class="label" data-i18n="metric.cost">estimated Bedrock cost per full run</div><div class="sub" data-i18n="metric.costSub">published ap-southeast-1 rates</div></div>
     </div>
   </section>
 
@@ -234,82 +315,78 @@
   <section id="architecture">
     <div class="section-head">
       <div>
-        <div class="kicker">Architecture</div>
-        <h2>Two containers, one request path.</h2>
+        <div class="kicker" data-i18n="arch.kicker">Architecture</div>
+        <h2 data-i18n="arch.title">Two containers, one request path.</h2>
       </div>
-      <p>PDF → page text → sentence-aligned chunks → embeddings → hybrid retrieval → grounded prompt → answer with citations. Credentials never enter the image.</p>
+      <p data-i18n="arch.blurb">PDF → page text → sentence-aligned chunks → embeddings → hybrid retrieval → grounded prompt → answer with citations. Credentials never enter the image.</p>
     </div>
 
     <div class="arch">
       <div class="arch-col">
-        <h4>Client</h4>
-        <div class="node"><b>Web UI / curl</b><span>Ask a question, upload PDFs</span></div>
-        <div class="node"><b>OpenAPI /docs</b><span>Typed request + response models</span></div>
-        <div class="arrow">→</div>
+        <h4 data-i18n="arch.client">Client</h4>
+        <div class="node"><b data-i18n="arch.client1t">Web UI / curl</b><span data-i18n="arch.client1d">Ask a question, upload PDFs</span></div>
+        <div class="node"><b data-i18n="arch.client2t">OpenAPI /docs</b><span data-i18n="arch.client2d">Typed request + response models</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
       </div>
 
       <div class="arch-col arch-mid">
         <h4>Docker Compose</h4>
-        <div class="node api"><b>FastAPI · /ingest · /ask</b><span>Page-aware chunker · provider switch · citation parser</span></div>
-        <div class="arrow">↕</div>
-        <div class="node"><b>Hybrid retrieval</b><span>Vector top-N + BM25 re-rank, top-4 into the prompt</span></div>
-        <div class="arrow">↕</div>
-        <div class="node"><b>Qdrant · named volume</b><span>719 vectors survive restart and down/up</span></div>
+        <div class="node api"><b data-i18n="arch.apiT">FastAPI · /ingest · /ask</b><span data-i18n="arch.apiD">Page-aware chunker · provider switch · citation parser</span></div>
+        <div class="arrow" aria-hidden="true">↕</div>
+        <div class="node"><b data-i18n="arch.retrieveT">Hybrid retrieval</b><span data-i18n="arch.retrieveD">Vector top-N + BM25 re-rank, top-4 into the prompt</span></div>
+        <div class="arrow" aria-hidden="true">↕</div>
+        <div class="node"><b data-i18n="arch.qdrantT">Qdrant · named volume</b><span data-i18n="arch.qdrantD">719 vectors survive restart and down/up</span></div>
       </div>
 
       <div class="arch-col">
-        <h4>AWS · ap-southeast-1</h4>
-        <div class="node aws"><b>Bedrock Runtime</b><span>Nova Lite via APAC inference profile · Converse API</span></div>
-        <div class="node aws"><b>Embeddings</b><span>Titan V2 (verify) or Cohere multilingual</span></div>
-        <div class="node aws"><b>Budgets · USD 5</b><span>Guardrail before the first call</span></div>
-        <div class="arrow">←</div>
+        <h4 data-i18n="arch.aws">AWS · ap-southeast-1</h4>
+        <div class="node aws"><b data-i18n="arch.bedrockT">Bedrock Runtime</b><span data-i18n="arch.bedrockD">Nova Lite via APAC inference profile · Converse API</span></div>
+        <div class="node aws"><b data-i18n="arch.embedT">Embeddings</b><span data-i18n="arch.embedD">Titan V2 (verify) or Cohere multilingual</span></div>
+        <div class="node aws"><b data-i18n="arch.budgetT">Budgets · USD 5</b><span data-i18n="arch.budgetD">Guardrail before the first call</span></div>
+        <div class="arrow" aria-hidden="true">←</div>
       </div>
     </div>
-    <p class="small" style="margin-top: 12px;">Offline mode swaps Bedrock for deterministic hashed embeddings and an extractive answerer, so the Docker demo, CI and tests work with zero cloud spend.</p>
+    <p class="small" style="margin-top: 12px;" data-i18n="arch.footnote">Offline mode swaps Bedrock for deterministic hashed embeddings and an extractive answerer, so the Docker demo, CI and tests work with zero cloud spend.</p>
   </section>
 
   <!-- HOW IT WORKS -->
   <section id="how">
     <div class="section-head">
-      <div><div class="kicker">How it works</div><h2>Four steps from PDF to cited answer.</h2></div>
+      <div><div class="kicker" data-i18n="how.kicker">How it works</div><h2 data-i18n="how.title">Four steps from PDF to cited answer.</h2></div>
     </div>
     <div class="steps">
-      <div class="step"><h3>Ingest</h3><p>pypdf extracts text page by page. Chunks are sentence-aligned with overlap and stable ids, so citations never start mid-word.</p></div>
-      <div class="step"><h3>Embed</h3><p>Each chunk becomes a 1024-dim vector. Bedrock: Titan or Cohere. Offline: deterministic feature hashing — lexical, transparent, and free.</p></div>
-      <div class="step"><h3>Retrieve</h3><p>Vector similarity proposes candidates; BM25 re-ranks them. Hybrid retrieval catches exact identifiers that small embeddings miss.</p></div>
-      <div class="step"><h3>Answer</h3><p>The model only sees retrieved passages and must cite them as [n]. If the corpus does not cover the question, the API says so instead of guessing.</p></div>
+      <div class="step"><h3 data-i18n="how.s1t">Ingest</h3><p data-i18n="how.s1d">pypdf extracts text page by page. Chunks are sentence-aligned with overlap and stable ids, so citations never start mid-word.</p></div>
+      <div class="step"><h3 data-i18n="how.s2t">Embed</h3><p data-i18n="how.s2d">Each chunk becomes a 1024-dim vector. Bedrock: Titan or Cohere. Offline: deterministic feature hashing — lexical, transparent, and free.</p></div>
+      <div class="step"><h3 data-i18n="how.s3t">Retrieve</h3><p data-i18n="how.s3d">Vector similarity proposes candidates; BM25 re-ranks them. Hybrid retrieval catches exact identifiers that small embeddings miss.</p></div>
+      <div class="step"><h3 data-i18n="how.s4t">Answer</h3><p data-i18n="how.s4d">The model only sees retrieved passages and must cite them as [n]. If the corpus does not cover the question, the API says so instead of guessing.</p></div>
     </div>
   </section>
 
   <!-- RESULTS -->
   <section id="results">
     <div class="section-head">
-      <div><div class="kicker">Evaluation</div><h2>Measured, not claimed.</h2></div>
-      <p>10 questions, each with an expected document and expected terms. Latency measured client-side per request.</p>
+      <div><div class="kicker" data-i18n="results.kicker">Evaluation</div><h2 data-i18n="results.title">Measured, not claimed.</h2></div>
+      <p data-i18n="results.blurb">10 questions, each with an expected document and expected terms. Latency measured client-side per request.</p>
     </div>
 
     <div class="split">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Metric</th><th>Result</th><th>Mode</th></tr></thead>
+          <thead><tr><th data-i18n="results.thMetric">Metric</th><th data-i18n="results.thResult">Result</th><th data-i18n="results.thMode">Mode</th></tr></thead>
           <tbody>
-            <tr><td>Questions</td><td class="num">10</td><td>offline</td></tr>
-            <tr><td>Latency p50 / p95</td><td class="num good">15 ms / 16 ms</td><td>offline</td></tr>
-            <tr><td>Expected source retrieved (top-4)</td><td class="num good">100%</td><td>offline</td></tr>
-            <tr><td>Expected source actually cited</td><td class="num good">100%</td><td>offline</td></tr>
-            <tr><td>Answers with ≥1 used citation</td><td class="num good">100%</td><td>offline</td></tr>
-            <tr><td>Grounded flag</td><td class="num good">100%</td><td>offline</td></tr>
-            <tr><td>Expected-term coverage</td><td class="num warn">42%</td><td>offline</td></tr>
+            <tr><td data-i18n="results.q">Questions</td><td class="num">10</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.latency">Latency p50 / p95</td><td class="num good">4.8 ms / 7.6 ms</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.retrieved">Expected source retrieved (top-4)</td><td class="num good">100%</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.cited">Expected source actually cited</td><td class="num good">100%</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.withCitation">Answers with ≥1 used citation</td><td class="num good">100%</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.grounded">Grounded flag</td><td class="num good">100%</td><td data-i18n="results.offline">offline</td></tr>
+            <tr><td data-i18n="results.coverage">Expected-term coverage</td><td class="num warn">58%</td><td data-i18n="results.offline">offline</td></tr>
           </tbody>
         </table>
       </div>
       <div class="callout">
-        <b>Read the 42% honestly.</b> These numbers come from the offline extractive
-        fallback, because no AWS credentials existed in the build environment. Retrieval
-        and citation plumbing are green; answer fluency is not. Bedrock mode is
-        code-complete and must be re-measured with real credentials before quoting
-        answer-quality numbers. No AWS cost was incurred.
-        <div style="margin-top: 10px;"><a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/eval/report.md" target="_blank" rel="noreferrer">Full report →</a></div>
+        <span data-i18n-html="results.callout"><b>Read the 58% honestly.</b> These numbers come from the offline extractive fallback, because no AWS credentials existed in the build environment. Retrieval and citation plumbing are green; answer fluency is not. Bedrock mode is code-complete and must be re-measured with real credentials before quoting answer-quality numbers. No AWS cost was incurred.</span>
+        <div style="margin-top: 10px;"><a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/eval/report.md" target="_blank" rel="noreferrer" data-i18n="results.fullReport">Full report →</a></div>
       </div>
     </div>
   </section>
@@ -317,46 +394,46 @@
   <!-- DOCKER -->
   <section id="docker">
     <div class="section-head">
-      <div><div class="kicker">Docker engineering</div><h2>1.83 GB → 429 MB, with receipts.</h2></div>
-      <p>Multi-stage build, slim base, non-root user, healthcheck, pinned lock file. The naive image is committed too, so the comparison is reproducible.</p>
+      <div><div class="kicker" data-i18n="docker.kicker">Docker engineering</div><h2 data-i18n="docker.title">1.83 GB → 429 MB, with receipts.</h2></div>
+      <p data-i18n="docker.blurb">Multi-stage build, slim base, non-root user, healthcheck, pinned lock file. The naive image is committed too, so the comparison is reproducible.</p>
     </div>
 
     <div class="split">
       <div class="card">
-        <h3>Image size</h3>
+        <h3 data-i18n="docker.sizeTitle">Image size</h3>
         <div class="bars">
-          <div class="bar-row"><span>naive:python3.13</span><div class="bar-track"><div class="bar-fill bad"></div></div><span>1.83 GB</span></div>
-          <div class="bar-row"><span>production</span><div class="bar-track"><div class="bar-fill good"></div></div><span>429 MB</span></div>
+          <div class="bar-row"><span data-i18n="docker.naive">naive:python3.13</span><div class="bar-track"><div class="bar-fill bad"></div></div><span>1.83 GB</span></div>
+          <div class="bar-row"><span data-i18n="docker.prod">production</span><div class="bar-track"><div class="bar-fill good"></div></div><span>429 MB</span></div>
         </div>
-        <p style="margin-top: 16px;">−77% size, same API. The runtime stage only receives a pre-built venv and <code>app/</code>; build tools stay in the builder stage.</p>
+        <p style="margin-top: 16px;" data-i18n="docker.sizeNote">−77% size, same API. The runtime stage only receives a pre-built venv and app/; build tools stay in the builder stage.</p>
       </div>
       <div class="card">
-        <h3>Build cache behaviour</h3>
+        <h3 data-i18n="docker.cacheTitle">Build cache behaviour</h3>
         <ul>
-          <li>no-change rebuild: <b>1.79 s</b></li>
-          <li>app-code change: <b>0.78 s</b></li>
-          <li>dependency change: <b>10.65 s</b></li>
+          <li><span data-i18n="docker.cache1">no-change rebuild:</span> <b>1.79 s</b></li>
+          <li><span data-i18n="docker.cache2">app-code change:</span> <b>0.78 s</b></li>
+          <li><span data-i18n="docker.cache3">dependency change:</span> <b>10.65 s</b></li>
         </ul>
-        <p style="margin-top: 12px;">Dependencies are copied before app code, so day-to-day edits skip the expensive install layer.</p>
+        <p style="margin-top: 12px;" data-i18n="docker.cacheNote">Dependencies are copied before app code, so day-to-day edits skip the expensive install layer.</p>
       </div>
     </div>
 
     <div class="grid grid-3" style="margin-top: 14px;">
-      <div class="card"><div class="kicker">Security</div><h3>No keys, no root</h3><p>Secrets excluded from git and image; AWS profile mounted read-only at runtime only; app runs as uid 10001 with upload size/type limits.</p></div>
-      <div class="card"><div class="kicker">Persistence</div><h3>Volumes that prove it</h3><p>After <code>restart</code> and <code>down/up</code>, the API still reports 719 chunks and Qdrant still holds 719 points. <code>down -v</code> deletes them.</p></div>
-      <div class="card"><div class="kicker">Ops</div><h3>Health-gated startup</h3><p>Docker healthcheck plus <code>depends_on: service_healthy</code>: the API never starts before Qdrant is ready.</p></div>
+      <div class="card"><div class="kicker" data-i18n="docker.secKicker">Security</div><h3 data-i18n="docker.secTitle">No keys, no root</h3><p data-i18n="docker.secDesc">Secrets excluded from git and image; AWS profile mounted read-only at runtime only; app runs as uid 10001 with upload size/type limits.</p></div>
+      <div class="card"><div class="kicker" data-i18n="docker.persistKicker">Persistence</div><h3 data-i18n="docker.persistTitle">Volumes that prove it</h3><p data-i18n="docker.persistDesc">After restart and down/up, the API still reports 719 chunks and Qdrant still holds 719 points. down -v deletes them.</p></div>
+      <div class="card"><div class="kicker" data-i18n="docker.opsKicker">Ops</div><h3 data-i18n="docker.opsTitle">Health-gated startup</h3><p data-i18n="docker.opsDesc">Docker healthcheck plus depends_on: service_healthy: the API never starts before Qdrant is ready.</p></div>
     </div>
   </section>
 
   <!-- QUICKSTART -->
   <section id="quickstart">
     <div class="section-head">
-      <div><div class="kicker">Quickstart</div><h2>Reviewer demo in one command.</h2></div>
-      <p>No AWS account needed for the offline path. Bedrock mode is one env switch away.</p>
+      <div><div class="kicker" data-i18n="quick.kicker">Quickstart</div><h2 data-i18n="quick.title">Reviewer demo in one command.</h2></div>
+      <p data-i18n="quick.blurb">No AWS account needed for the offline path. Bedrock mode is one env switch away.</p>
     </div>
     <div class="split">
       <div class="card">
-        <div class="code-label">Offline · Docker Compose</div>
+        <div class="code-label" data-i18n="quick.offline">Offline · Docker Compose</div>
         <pre><code><span class="tok-c"># clone + start API and Qdrant</span>
 git clone https://github.com/SBryanK/DOCKER-AWS-TRIAL.git
 cd DOCKER-AWS-TRIAL
@@ -374,7 +451,7 @@ curl -X POST http://localhost:8000/ask \
 open http://localhost:8000</code></pre>
       </div>
       <div class="card">
-        <div class="code-label">Bedrock · verify before first call</div>
+        <div class="code-label" data-i18n="quick.bedrock">Bedrock · verify before first call</div>
         <pre><code><span class="tok-c"># budget alert first: USD 5/month</span>
 python -m scripts.setup_budget --email you@example.com
 
@@ -394,53 +471,53 @@ python -m scripts.run_eval</code></pre>
   <!-- NOTES -->
   <section id="notes">
     <div class="section-head">
-      <div><div class="kicker">Cloud notes</div><h2>AWS facts, verified and flagged.</h2></div>
-      <p>Region-specific model availability, pricing citations and the one EOL trap that would have broken a copy-pasted tutorial.</p>
+      <div><div class="kicker" data-i18n="notes.kicker">Cloud notes</div><h2 data-i18n="notes.title">AWS facts, verified and flagged.</h2></div>
+      <p data-i18n="notes.blurb">Region-specific model availability, pricing citations and the one EOL trap that would have broken a copy-pasted tutorial.</p>
     </div>
     <div class="grid grid-3">
       <div class="card">
-        <div class="kicker">Generator</div>
-        <h3>Nova Lite, APAC profile</h3>
-        <p><code>apac.amazon.nova-lite-v1:0</code> is confirmed for Converse from Singapore via cross-region inference. Data can route to Tokyo/Seoul/Osaka/Mumbai/Sydney — a residency caveat for policy workloads.</p>
+        <div class="kicker" data-i18n="notes.genKicker">Generator</div>
+        <h3 data-i18n="notes.genTitle">Nova Lite, APAC profile</h3>
+        <p data-i18n="notes.genDesc">apac.amazon.nova-lite-v1:0 is confirmed for Converse from Singapore via cross-region inference. Data can route to Tokyo/Seoul/Osaka/Mumbai/Sydney — a residency caveat for policy workloads.</p>
       </div>
       <div class="card">
-        <div class="kicker">Embeddings</div>
-        <h3>Titan vs Cohere</h3>
-        <p>The Singapore price list publishes Titan V2, but the model card's regional table does not. The repo verifies at runtime and supports <code>cohere.embed-multilingual-v3</code> as an in-region fallback.</p>
+        <div class="kicker" data-i18n="notes.embKicker">Embeddings</div>
+        <h3 data-i18n="notes.embTitle">Titan vs Cohere</h3>
+        <p data-i18n="notes.embDesc">The Singapore price list publishes Titan V2, but the model card's regional table does not. The repo verifies at runtime and supports cohere.embed-multilingual-v3 as an in-region fallback.</p>
       </div>
       <div class="card">
-        <div class="kicker">Lifecycle trap</div>
-        <h3>Claude 3 Haiku is EOL</h3>
-        <p>Claude 3 Haiku reached end-of-life in ap-southeast-1 on 2026-11-13. Any blog post still using that ID fails with <code>ResourceNotFoundException</code> — verify IDs instead of trusting tutorials.</p>
+        <div class="kicker" data-i18n="notes.lifeKicker">Lifecycle trap</div>
+        <h3 data-i18n="notes.lifeTitle">Claude 3 Haiku is EOL</h3>
+        <p data-i18n="notes.lifeDesc">Claude 3 Haiku reached end-of-life in ap-southeast-1 on 2026-11-13. Any blog post still using that ID fails with ResourceNotFoundException — verify IDs instead of trusting tutorials.</p>
       </div>
     </div>
-    <p class="small" style="margin-top: 14px;"><a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/docs/AWS_NOTES.md" target="_blank" rel="noreferrer">Full AWS notes with citations and the verification checklist →</a></p>
+    <p class="small" style="margin-top: 14px;"><a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/docs/AWS_NOTES.md" target="_blank" rel="noreferrer" data-i18n="notes.link">Full AWS notes with citations and the verification checklist →</a></p>
   </section>
 
   <!-- TRADEOFFS -->
   <section id="tradeoffs">
     <div class="section-head">
-      <div><div class="kicker">Engineering judgement</div><h2>What I would change at enterprise scale.</h2></div>
+      <div><div class="kicker" data-i18n="trade.kicker">Engineering judgement</div><h2 data-i18n="trade.title">What I would change at enterprise scale.</h2></div>
     </div>
     <div class="grid grid-2">
       <div class="card">
-        <h3>Deliberate demo trade-offs</h3>
+        <h3 data-i18n="trade.card1Title">Deliberate demo trade-offs</h3>
         <ul>
-          <li>Character-based chunks instead of token/section-aware chunking</li>
-          <li>numpy brute-force index locally; BM25 over the whole corpus for offline retrieval</li>
-          <li>Single API process with synchronous ingestion</li>
-          <li>No auth, rate limiting or WAF</li>
-          <li>Logs only; no distributed tracing</li>
+          <li data-i18n="trade.c1a">Character-based chunks instead of token/section-aware chunking</li>
+          <li data-i18n="trade.c1b">numpy brute-force index locally; BM25 over the whole corpus for offline retrieval</li>
+          <li data-i18n="trade.c1c">Single API process with synchronous ingestion</li>
+          <li data-i18n="trade.c1d">No auth, rate limiting or WAF</li>
+          <li data-i18n="trade.c1e">Logs only; no distributed tracing</li>
         </ul>
       </div>
       <div class="card">
-        <h3>Production path</h3>
+        <h3 data-i18n="trade.card2Title">Production path</h3>
         <ul>
-          <li>Managed vector store + dedicated lexical index + cross-encoder reranker</li>
-          <li>S3-triggered async ingestion with idempotent re-indexing</li>
-          <li>API Gateway / Cognito, quotas, Guardrails, PII redaction before embedding</li>
-          <li>ECS Fargate or EKS with IaC, blue/green deploys, OpenTelemetry</li>
-          <li>Retrieval evaluation in CI against a growing golden set</li>
+          <li data-i18n="trade.c2a">Managed vector store + dedicated lexical index + cross-encoder reranker</li>
+          <li data-i18n="trade.c2b">S3-triggered async ingestion with idempotent re-indexing</li>
+          <li data-i18n="trade.c2c">API Gateway / Cognito, quotas, Guardrails, PII redaction before embedding</li>
+          <li data-i18n="trade.c2d">ECS Fargate or EKS with IaC, blue/green deploys, OpenTelemetry</li>
+          <li data-i18n="trade.c2e">Retrieval evaluation in CI against a growing golden set</li>
         </ul>
       </div>
     </div>
@@ -449,17 +526,364 @@ python -m scripts.run_eval</code></pre>
   <footer>
     <div class="wrap foot-inner">
       <div>
-        <b>PolicyLens</b> · built by Bryan Santasila · MIT license<br />
-        <span class="small">Corpus: NIST AI RMF 1.0, NIST GenAI Profile, UK AI regulation white paper. Public documents, redistributed with provenance.</span>
+        <b data-i18n="foot.tagline">Built by Bryan Santasila · MIT license</b><br />
+        <span class="small" data-i18n="foot.corpus">Corpus: NIST AI RMF 1.0, NIST GenAI Profile, UK AI regulation white paper. Public documents, redistributed with provenance.</span>
       </div>
       <div class="foot-links">
         <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL" target="_blank" rel="noreferrer">GitHub</a>
         <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/README.md" target="_blank" rel="noreferrer">README</a>
-        <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/PROGRESS.md" target="_blank" rel="noreferrer">Progress</a>
-        <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/eval/report.md" target="_blank" rel="noreferrer">Eval</a>
+        <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/PROGRESS.md" target="_blank" rel="noreferrer" data-i18n="foot.progress">Progress</a>
+        <a href="https://github.com/SBryanK/DOCKER-AWS-TRIAL/blob/main/eval/report.md" target="_blank" rel="noreferrer" data-i18n="foot.eval">Eval</a>
       </div>
     </div>
   </footer>
 </main>
+
+<script>
+  const I18N = {
+    en: {
+      "meta.title": "PolicyLens — Policy Q&A RAG API on Bedrock, in Docker",
+      "meta.description": "Grounded policy Q&A API: FastAPI + hybrid retrieval + Amazon Bedrock, shipped as a 429 MB non-root Docker image with Qdrant and reproducible evaluation.",
+      "nav.architecture": "Architecture",
+      "nav.results": "Results",
+      "nav.docker": "Docker",
+      "nav.quickstart": "Quickstart",
+      "nav.notes": "AWS notes",
+      "nav.github": "GitHub",
+      "aria.theme": "Switch to light theme",
+      "aria.themeDark": "Switch to dark theme",
+      "aria.langId": "Switch to Indonesian",
+      "aria.langEn": "Switch to English",
+      "hero.eyebrow": "Portfolio project · Docker + Amazon Bedrock + Qdrant",
+      "hero.title1": "Grounded policy answers,",
+      "hero.title2": "shipped in a 429 MB container.",
+      "hero.lede": "A retrieval-augmented Q&A API over 205 pages of public AI-policy PDFs. Every answer cites the document and page it came from. Two interchangeable backends: real Amazon Bedrock, or a fully offline mode that runs the whole demo without an AWS account.",
+      "hero.ctaRepo": "View the repository",
+      "hero.ctaTutorial": "Read the tutorial",
+      "hero.ctaResults": "See measured results",
+      "badge.fastapi": "FastAPI · Python 3.13",
+      "badge.hybrid": "Hybrid retrieval (vector + BM25)",
+      "badge.bedrock": "Amazon Nova Lite / Titan",
+      "badge.qdrant": "Qdrant named volume",
+      "badge.tests": "18 tests + 29 functional checks",
+      "badge.i18n": "Bilingual EN/ID · light/dark",
+      "badge.ci": "GitHub Actions CI",
+      "metric.chunks": "chunks indexed from 3 public PDFs",
+      "metric.chunksSub": "205 pages · ~120k tokens",
+      "metric.latency": "p50 answer latency (offline mode, 10 questions)",
+      "metric.latencySub": "p95 7.6 ms · localhost stack",
+      "metric.size": "production image, non-root, healthy",
+      "metric.sizeSub": "vs 1.83 GB naive image",
+      "metric.cost": "estimated Bedrock cost per full run",
+      "metric.costSub": "published ap-southeast-1 rates",
+      "arch.kicker": "Architecture",
+      "arch.title": "Two containers, one request path.",
+      "arch.blurb": "PDF → page text → sentence-aligned chunks → embeddings → hybrid retrieval → grounded prompt → answer with citations. Credentials never enter the image.",
+      "arch.client": "Client",
+      "arch.client1t": "Web UI / curl",
+      "arch.client1d": "Ask a question, upload PDFs",
+      "arch.client2t": "OpenAPI /docs",
+      "arch.client2d": "Typed request + response models",
+      "arch.apiT": "FastAPI · /ingest · /ask",
+      "arch.apiD": "Page-aware chunker · provider switch · citation parser",
+      "arch.retrieveT": "Hybrid retrieval",
+      "arch.retrieveD": "Vector top-N + BM25 re-rank, top-4 into the prompt",
+      "arch.qdrantT": "Qdrant · named volume",
+      "arch.qdrantD": "719 vectors survive restart and down/up",
+      "arch.aws": "AWS · ap-southeast-1",
+      "arch.bedrockT": "Bedrock Runtime",
+      "arch.bedrockD": "Nova Lite via APAC inference profile · Converse API",
+      "arch.embedT": "Embeddings",
+      "arch.embedD": "Titan V2 (verify) or Cohere multilingual",
+      "arch.budgetT": "Budgets · USD 5",
+      "arch.budgetD": "Guardrail before the first call",
+      "arch.footnote": "Offline mode swaps Bedrock for deterministic hashed embeddings and an extractive answerer, so the Docker demo, CI and tests work with zero cloud spend.",
+      "how.kicker": "How it works",
+      "how.title": "Four steps from PDF to cited answer.",
+      "how.s1t": "Ingest",
+      "how.s1d": "pypdf extracts text page by page. Chunks are sentence-aligned with overlap and stable ids, so citations never start mid-word.",
+      "how.s2t": "Embed",
+      "how.s2d": "Each chunk becomes a 1024-dim vector. Bedrock: Titan or Cohere. Offline: deterministic feature hashing — lexical, transparent, and free.",
+      "how.s3t": "Retrieve",
+      "how.s3d": "Vector similarity proposes candidates; BM25 re-ranks them. Hybrid retrieval catches exact identifiers that small embeddings miss.",
+      "how.s4t": "Answer",
+      "how.s4d": "The model only sees retrieved passages and must cite them as [n]. If the corpus does not cover the question, the API says so instead of guessing.",
+      "results.kicker": "Evaluation",
+      "results.title": "Measured, not claimed.",
+      "results.blurb": "10 questions, each with an expected document and expected terms. Latency measured client-side per request.",
+      "results.thMetric": "Metric",
+      "results.thResult": "Result",
+      "results.thMode": "Mode",
+      "results.q": "Questions",
+      "results.latency": "Latency p50 / p95",
+      "results.retrieved": "Expected source retrieved (top-4)",
+      "results.cited": "Expected source actually cited",
+      "results.withCitation": "Answers with ≥1 used citation",
+      "results.grounded": "Grounded flag",
+      "results.coverage": "Expected-term coverage",
+      "results.offline": "offline",
+      "results.callout": "<b>Read the 58% honestly.</b> These numbers come from the offline extractive fallback, because no AWS credentials existed in the build environment. Retrieval and citation plumbing are green; answer fluency is not. Bedrock mode is code-complete and must be re-measured with real credentials before quoting answer-quality numbers. No AWS cost was incurred.",
+      "results.fullReport": "Full report →",
+      "docker.kicker": "Docker engineering",
+      "docker.title": "1.83 GB → 429 MB, with receipts.",
+      "docker.blurb": "Multi-stage build, slim base, non-root user, healthcheck, pinned lock file. The naive image is committed too, so the comparison is reproducible.",
+      "docker.sizeTitle": "Image size",
+      "docker.naive": "naive:python3.13",
+      "docker.prod": "production",
+      "docker.sizeNote": "−77% size, same API. The runtime stage only receives a pre-built venv and app/; build tools stay in the builder stage.",
+      "docker.cacheTitle": "Build cache behaviour",
+      "docker.cache1": "no-change rebuild:",
+      "docker.cache2": "app-code change:",
+      "docker.cache3": "dependency change:",
+      "docker.cacheNote": "Dependencies are copied before app code, so day-to-day edits skip the expensive install layer.",
+      "docker.secKicker": "Security",
+      "docker.secTitle": "No keys, no root",
+      "docker.secDesc": "Secrets excluded from git and image; AWS profile mounted read-only at runtime only; app runs as uid 10001 with upload size/type limits.",
+      "docker.persistKicker": "Persistence",
+      "docker.persistTitle": "Volumes that prove it",
+      "docker.persistDesc": "After restart and down/up, the API still reports 719 chunks and Qdrant still holds 719 points. down -v deletes them.",
+      "docker.opsKicker": "Ops",
+      "docker.opsTitle": "Health-gated startup",
+      "docker.opsDesc": "Docker healthcheck plus depends_on: service_healthy: the API never starts before Qdrant is ready.",
+      "quick.kicker": "Quickstart",
+      "quick.title": "Reviewer demo in one command.",
+      "quick.blurb": "No AWS account needed for the offline path. Bedrock mode is one env switch away.",
+      "quick.offline": "Offline · Docker Compose",
+      "quick.bedrock": "Bedrock · verify before first call",
+      "notes.kicker": "Cloud notes",
+      "notes.title": "AWS facts, verified and flagged.",
+      "notes.blurb": "Region-specific model availability, pricing citations and the one EOL trap that would have broken a copy-pasted tutorial.",
+      "notes.genKicker": "Generator",
+      "notes.genTitle": "Nova Lite, APAC profile",
+      "notes.genDesc": "apac.amazon.nova-lite-v1:0 is confirmed for Converse from Singapore via cross-region inference. Data can route to Tokyo/Seoul/Osaka/Mumbai/Sydney — a residency caveat for policy workloads.",
+      "notes.embKicker": "Embeddings",
+      "notes.embTitle": "Titan vs Cohere",
+      "notes.embDesc": "The Singapore price list publishes Titan V2, but the model card's regional table does not. The repo verifies at runtime and supports cohere.embed-multilingual-v3 as an in-region fallback.",
+      "notes.lifeKicker": "Lifecycle trap",
+      "notes.lifeTitle": "Claude 3 Haiku is EOL",
+      "notes.lifeDesc": "Claude 3 Haiku reached end-of-life in ap-southeast-1 on 2026-11-13. Any blog post still using that ID fails with ResourceNotFoundException — verify IDs instead of trusting tutorials.",
+      "notes.link": "Full AWS notes with citations and the verification checklist →",
+      "trade.kicker": "Engineering judgement",
+      "trade.title": "What I would change at enterprise scale.",
+      "trade.card1Title": "Deliberate demo trade-offs",
+      "trade.c1a": "Character-based chunks instead of token/section-aware chunking",
+      "trade.c1b": "numpy brute-force index locally; BM25 over the whole corpus for offline retrieval",
+      "trade.c1c": "Single API process with synchronous ingestion",
+      "trade.c1d": "No auth, rate limiting or WAF",
+      "trade.c1e": "Logs only; no distributed tracing",
+      "trade.card2Title": "Production path",
+      "trade.c2a": "Managed vector store + dedicated lexical index + cross-encoder reranker",
+      "trade.c2b": "S3-triggered async ingestion with idempotent re-indexing",
+      "trade.c2c": "API Gateway / Cognito, quotas, Guardrails, PII redaction before embedding",
+      "trade.c2d": "ECS Fargate or EKS with IaC, blue/green deploys, OpenTelemetry",
+      "trade.c2e": "Retrieval evaluation in CI against a growing golden set",
+      "foot.tagline": "Built by Bryan Santasila · MIT license",
+      "foot.corpus": "Corpus: NIST AI RMF 1.0, NIST GenAI Profile, UK AI regulation white paper. Public documents, redistributed with provenance.",
+      "foot.progress": "Progress",
+      "foot.eval": "Eval"
+    },
+    id: {
+      "meta.title": "PolicyLens — API Tanya-Jawab Kebijakan dengan RAG di Bedrock, dalam Docker",
+      "meta.description": "API tanya-jawab kebijakan yang grounded: FastAPI + hybrid retrieval + Amazon Bedrock, dikirim sebagai image Docker non-root 429 MB dengan Qdrant dan evaluasi yang bisa diulang.",
+      "nav.architecture": "Arsitektur",
+      "nav.results": "Hasil",
+      "nav.docker": "Docker",
+      "nav.quickstart": "Mulai Cepat",
+      "nav.notes": "Catatan AWS",
+      "nav.github": "GitHub",
+      "aria.theme": "Ganti ke tema terang",
+      "aria.themeDark": "Ganti ke tema gelap",
+      "aria.langId": "Ganti ke Bahasa Indonesia",
+      "aria.langEn": "Ganti ke Bahasa Inggris",
+      "hero.eyebrow": "Proyek portfolio · Docker + Amazon Bedrock + Qdrant",
+      "hero.title1": "Jawaban kebijakan yang punya sumber,",
+      "hero.title2": "dikirim dalam container 429 MB.",
+      "hero.lede": "API tanya-jawab berbasis RAG di atas 205 halaman PDF kebijakan publik. Setiap jawaban menyebut dokumen dan halamannya. Ada dua backend yang bisa ditukar: Amazon Bedrock asli, atau mode offline yang menjalankan seluruh demo tanpa akun AWS.",
+      "hero.ctaRepo": "Lihat repository",
+      "hero.ctaTutorial": "Baca tutorial",
+      "hero.ctaResults": "Lihat hasil pengukuran",
+      "badge.fastapi": "FastAPI · Python 3.13",
+      "badge.hybrid": "Hybrid retrieval (vector + BM25)",
+      "badge.bedrock": "Amazon Nova Lite / Titan",
+      "badge.qdrant": "Qdrant named volume",
+      "badge.tests": "18 test + 29 functional check",
+      "badge.i18n": "Bilingual EN/ID · terang/gelap",
+      "badge.ci": "GitHub Actions CI",
+      "metric.chunks": "chunk terindeks dari 3 PDF publik",
+      "metric.chunksSub": "205 halaman · ~120k token",
+      "metric.latency": "latensi jawaban p50 (mode offline, 10 pertanyaan)",
+      "metric.latencySub": "p95 7.6 ms · stack lokal",
+      "metric.size": "image produksi, non-root, sehat",
+      "metric.sizeSub": "dibanding image naive 1,83 GB",
+      "metric.cost": "estimasi biaya Bedrock per full run",
+      "metric.costSub": "tarif resmi ap-southeast-1",
+      "arch.kicker": "Arsitektur",
+      "arch.title": "Dua container, satu alur request.",
+      "arch.blurb": "PDF → teks per halaman → chunk sejajar kalimat → embedding → hybrid retrieval → prompt grounded → jawaban dengan sitasi. Kredensial tidak pernah masuk ke dalam image.",
+      "arch.client": "Klien",
+      "arch.client1t": "Web UI / curl",
+      "arch.client1d": "Tanya pertanyaan, unggah PDF",
+      "arch.client2t": "OpenAPI /docs",
+      "arch.client2d": "Model request + response yang typed",
+      "arch.apiT": "FastAPI · /ingest · /ask",
+      "arch.apiD": "Chunker per halaman · switch provider · parser sitasi",
+      "arch.retrieveT": "Hybrid retrieval",
+      "arch.retrieveD": "Top-N vector + re-rank BM25, 4 teratas masuk prompt",
+      "arch.qdrantT": "Qdrant · named volume",
+      "arch.qdrantD": "719 vector bertahan setelah restart dan down/up",
+      "arch.aws": "AWS · ap-southeast-1",
+      "arch.bedrockT": "Bedrock Runtime",
+      "arch.bedrockD": "Nova Lite via inference profile APAC · Converse API",
+      "arch.embedT": "Embedding",
+      "arch.embedD": "Titan V2 (verifikasi) atau Cohere multilingual",
+      "arch.budgetT": "Budgets · USD 5",
+      "arch.budgetD": "Pagar pengaman sebelum panggilan pertama",
+      "arch.footnote": "Mode offline mengganti Bedrock dengan embedding hash deterministik dan penjawab extractive, jadi demo Docker, CI, dan test tetap jalan tanpa biaya cloud.",
+      "how.kicker": "Cara kerjanya",
+      "how.title": "Empat langkah dari PDF ke jawaban bersitasi.",
+      "how.s1t": "Ingest",
+      "how.s1d": "pypdf mengekstrak teks per halaman. Chunk sejajar kalimat dengan overlap dan id stabil, jadi sitasi tidak pernah mulai di tengah kata.",
+      "how.s2t": "Embed",
+      "how.s2d": "Setiap chunk jadi vector 1024 dimensi. Bedrock: Titan atau Cohere. Offline: feature hashing deterministik — lexical, transparan, dan gratis.",
+      "how.s3t": "Retrieve",
+      "how.s3d": "Kemiripan vector mengusulkan kandidat; BM25 melakukan re-rank. Hybrid retrieval menangkap istilah persis yang terlewat oleh embedding kecil.",
+      "how.s4t": "Jawab",
+      "how.s4d": "Model hanya melihat passage yang diambil dan wajib menyitirnya sebagai [n]. Kalau korpus tidak memuat jawabannya, API bilang tidak tercakup, bukan mengarang.",
+      "results.kicker": "Evaluasi",
+      "results.title": "Diukur, bukan diklaim.",
+      "results.blurb": "10 pertanyaan, masing-masing punya dokumen dan istilah yang diharapkan. Latensi diukur dari sisi klien per request.",
+      "results.thMetric": "Metrik",
+      "results.thResult": "Hasil",
+      "results.thMode": "Mode",
+      "results.q": "Pertanyaan",
+      "results.latency": "Latensi p50 / p95",
+      "results.retrieved": "Sumber yang diharapkan terambil (top-4)",
+      "results.cited": "Sumber yang benar-benar disitir",
+      "results.withCitation": "Jawaban dengan ≥1 sitasi terpakai",
+      "results.grounded": "Flag grounded",
+      "results.coverage": "Cakupan istilah yang diharapkan",
+      "results.offline": "offline",
+      "results.callout": "<b>Baca angka 58% dengan jujur.</b> Angka ini berasal dari fallback extractive offline, karena tidak ada kredensial AWS di environment build. Plumbing retrieval dan sitasi sudah hijau; kefasihan jawaban belum. Mode Bedrock sudah lengkap secara kode dan wajib diukur ulang dengan kredensial asli sebelum mengutip angka kualitas jawaban. Tidak ada biaya AWS yang keluar.",
+      "results.fullReport": "Laporan lengkap →",
+      "docker.kicker": "Rekayasa Docker",
+      "docker.title": "1,83 GB → 429 MB, dengan bukti.",
+      "docker.blurb": "Multi-stage build, base slim, user non-root, healthcheck, lock file yang dipin. Image naive juga disimpan supaya perbandingannya bisa diulang.",
+      "docker.sizeTitle": "Ukuran image",
+      "docker.naive": "naive:python3.13",
+      "docker.prod": "produksi",
+      "docker.sizeNote": "−77% ukuran, API sama. Stage runtime hanya menerima venv siap pakai dan app/; build tools tetap di stage builder.",
+      "docker.cacheTitle": "Perilaku cache build",
+      "docker.cache1": "rebuild tanpa perubahan:",
+      "docker.cache2": "perubahan kode aplikasi:",
+      "docker.cache3": "perubahan dependency:",
+      "docker.cacheNote": "Dependency di-copy sebelum kode aplikasi, jadi edit sehari-hari melewati lapisan install yang mahal.",
+      "docker.secKicker": "Keamanan",
+      "docker.secTitle": "Tanpa key, tanpa root",
+      "docker.secDesc": "Secret dikeluarkan dari git dan image; profil AWS di-mount read-only hanya saat runtime; aplikasi jalan sebagai uid 10001 dengan batas ukuran/tipe upload.",
+      "docker.persistKicker": "Persistensi",
+      "docker.persistTitle": "Volume yang membuktikan",
+      "docker.persistDesc": "Setelah restart dan down/up, API tetap melaporkan 719 chunk dan Qdrant tetap menyimpan 719 point. down -v menghapusnya.",
+      "docker.opsKicker": "Operasional",
+      "docker.opsTitle": "Startup menunggu sehat",
+      "docker.opsDesc": "Healthcheck Docker plus depends_on: service_healthy: API tidak pernah start sebelum Qdrant siap.",
+      "quick.kicker": "Mulai cepat",
+      "quick.title": "Demo untuk reviewer dengan satu perintah.",
+      "quick.blurb": "Jalur offline tidak butuh akun AWS. Mode Bedrock tinggal ganti env.",
+      "quick.offline": "Offline · Docker Compose",
+      "quick.bedrock": "Bedrock · verifikasi sebelum panggilan pertama",
+      "notes.kicker": "Catatan cloud",
+      "notes.title": "Fakta AWS, terverifikasi dan ditandai.",
+      "notes.blurb": "Ketersediaan model per region, sitasi harga, dan satu jebakan EOL yang bakal merusak tutorial hasil copy-paste.",
+      "notes.genKicker": "Generator",
+      "notes.genTitle": "Nova Lite, profil APAC",
+      "notes.genDesc": "apac.amazon.nova-lite-v1:0 terkonfirmasi untuk Converse dari Singapura lewat cross-region inference. Data bisa dirutekan ke Tokyo/Seoul/Osaka/Mumbai/Sydney — catatan residensi untuk beban kerja kebijakan.",
+      "notes.embKicker": "Embedding",
+      "notes.embTitle": "Titan vs Cohere",
+      "notes.embDesc": "Price list Singapura mencantumkan Titan V2, tapi tabel regional model card tidak. Repo memverifikasi saat runtime dan mendukung cohere.embed-multilingual-v3 sebagai fallback in-region.",
+      "notes.lifeKicker": "Jebakan lifecycle",
+      "notes.lifeTitle": "Claude 3 Haiku sudah EOL",
+      "notes.lifeDesc": "Claude 3 Haiku mencapai end-of-life di ap-southeast-1 pada 2026-11-13. Blog yang masih memakai ID itu akan gagal dengan ResourceNotFoundException — verifikasi ID, jangan percaya tutorial lama.",
+      "notes.link": "Catatan AWS lengkap dengan sitasi dan checklist verifikasi →",
+      "trade.kicker": "Pertimbangan engineering",
+      "trade.title": "Apa yang akan saya ubah di skala enterprise.",
+      "trade.card1Title": "Trade-off demo yang disengaja",
+      "trade.c1a": "Chunk berbasis karakter, bukan token/section-aware",
+      "trade.c1b": "Index brute-force numpy di lokal; BM25 atas seluruh korpus untuk retrieval offline",
+      "trade.c1c": "Satu proses API dengan ingestion sinkron",
+      "trade.c1d": "Tanpa auth, rate limiting, atau WAF",
+      "trade.c1e": "Hanya log; tanpa distributed tracing",
+      "trade.card2Title": "Jalur produksi",
+      "trade.c2a": "Vector store terkelola + lexical index khusus + reranker cross-encoder",
+      "trade.c2b": "Ingestion async dari S3 dengan re-indexing idempoten",
+      "trade.c2c": "API Gateway / Cognito, kuota, Guardrails, redaksi PII sebelum embedding",
+      "trade.c2d": "ECS Fargate atau EKS dengan IaC, deploy blue/green, OpenTelemetry",
+      "trade.c2e": "Evaluasi retrieval di CI dengan golden set yang terus tumbuh",
+      "foot.tagline": "Dibuat oleh Bryan Santasila · lisensi MIT",
+      "foot.corpus": "Korpus: NIST AI RMF 1.0, NIST GenAI Profile, UK AI regulation white paper. Dokumen publik, didistribusikan ulang dengan provenance.",
+      "foot.progress": "Progress",
+      "foot.eval": "Eval"
+    }
+  };
+
+  var themeButton = document.getElementById("theme-toggle");
+  var langButton = document.getElementById("lang-toggle");
+
+  function currentLang() {
+    return document.documentElement.getAttribute("lang") === "id" ? "id" : "en";
+  }
+
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem("theme", theme); } catch (error) {}
+    var dict = I18N[currentLang()];
+    var isDark = theme === "dark";
+    themeButton.textContent = isDark ? "☀️" : "🌙";
+    themeButton.setAttribute("aria-label", isDark ? dict["aria.theme"] : dict["aria.themeDark"]);
+    themeButton.setAttribute("title", isDark ? dict["aria.theme"] : dict["aria.themeDark"]);
+  }
+
+  function applyLang(lang) {
+    var dict = I18N[lang] || I18N.en;
+    document.documentElement.setAttribute("lang", lang);
+    try { localStorage.setItem("lang", lang); } catch (error) {}
+    document.title = dict["meta.title"];
+    var description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute("content", dict["meta.description"]);
+
+    document.querySelectorAll("[data-i18n]").forEach(function (element) {
+      var key = element.getAttribute("data-i18n");
+      if (dict[key] !== undefined) element.textContent = dict[key];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(function (element) {
+      var key = element.getAttribute("data-i18n-html");
+      if (dict[key] !== undefined) element.innerHTML = dict[key];
+    });
+    document.querySelectorAll("[data-i18n-aria]").forEach(function (element) {
+      var key = element.getAttribute("data-i18n-aria");
+      if (dict[key] !== undefined) element.setAttribute("aria-label", dict[key]);
+    });
+
+    var isEnglish = lang === "en";
+    langButton.textContent = isEnglish ? "ID" : "EN";
+    langButton.setAttribute("aria-label", isEnglish ? dict["aria.langId"] : dict["aria.langEn"]);
+    langButton.setAttribute("title", isEnglish ? dict["aria.langId"] : dict["aria.langEn"]);
+    applyTheme(currentTheme());
+  }
+
+  themeButton.addEventListener("click", function () {
+    applyTheme(currentTheme() === "dark" ? "light" : "dark");
+  });
+
+  langButton.addEventListener("click", function () {
+    applyLang(currentLang() === "en" ? "id" : "en");
+  });
+
+  applyTheme(currentTheme());
+  applyLang(currentLang());
+</script>
 </body>
 </html>

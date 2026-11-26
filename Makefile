@@ -3,7 +3,7 @@ VENV := .venv
 PY := $(VENV)/bin/python
 UV_CACHE := .uv-cache
 
-.PHONY: help install lock run ingest test lint eval build-naive build up down logs clean
+.PHONY: help install lock run ingest test lint eval functional build-naive build up down logs clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -30,6 +30,9 @@ lint: ## Lint the codebase
 
 eval: ## Run the 10-question evaluation against localhost:8000
 	$(PY) -m scripts.run_eval
+
+functional: ## Run the 29 end-to-end API checks against localhost:8000
+	$(PY) -m scripts.functional_test
 
 build-naive: ## Build the deliberately naive image (size comparison)
 	docker build -f docker/Dockerfile.naive -t policy-rag:naive .

@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-25T12:23:03+00:00",
+  "generated_at": "2026-11-26T03:00:48+00:00",
   "base_url": "http://127.0.0.1:8000",
   "stats": {
     "version": "1.0.0",
-    "backend": "numpy",
+    "backend": "qdrant",
     "chunks": 719,
     "dim": 1024,
     "sources": [
@@ -22,14 +22,14 @@
   },
   "aggregate": {
     "questions": 10,
-    "latency_mean_ms": 15.0,
-    "latency_p50_ms": 15.0,
-    "latency_p95_ms": 15.6,
+    "latency_mean_ms": 5.2,
+    "latency_p50_ms": 4.8,
+    "latency_p95_ms": 7.6,
     "retrieval_hit_rate": 1.0,
     "citation_hit_rate": 1.0,
     "citation_rate": 1.0,
     "grounded_rate": 1.0,
-    "mean_term_coverage": 0.423
+    "mean_term_coverage": 0.583
   },
   "results": [
     {
@@ -42,14 +42,14 @@
         "measure",
         "manage"
       ],
-      "latency_ms": 15.5,
-      "service_latency_ms": 14.8,
-      "answer": "Based on the ingested documents: Additional resources related to the Framework are included in the AI RMF Playbook, which is available via the NIST AI RMF website: https://www.nist.gov/itl/ai-risk-management-framework [1]. As illus- trated in Figure 5, the Core is composed of four functions: GOVERN, MAP, MEASURE, and MANAGE [2]. Each of these high-level functions is broken down into categories and sub- categories [2]. https://airc.nist.gov/AI_RMF_Knowledge_Base/AI_RMF/Core_And_Proﬁles/6-sec-proﬁle National Institute of Standards and Technology (2023) AI Risk Management Framework, Appendix A: Descriptions of AI Actor Tasks [4]. https://airc.nist.gov/AI_RMF_Knowl [4].",
+      "latency_ms": 7.6,
+      "service_latency_ms": 6.1,
+      "answer": "Based on the ingested documents: Additional resources related to the Framework are included in the AI RMF Playbook, which is available via the NIST AI RMF website: https://www.nist.gov/itl/ai-risk-management-framework [1]. As illus- trated in Figure 5, the Core is composed of four functions: GOVERN, MAP, MEASURE, and MANAGE [2]. Each of these high-level functions is broken down into categories and sub- categories [2]. As part of the effort to address AI trustworthi- ness characteristics such as “Secure and Resilient” and “Privacy-Enhanced,” organizations may consider leveraging available standards and guidance that provide broad guidance to organizations to reduce security and privacy risks, such as, but not limited to, the NIST Cy- bersecurity Framework, the NIST Privacy Framework, the NIST Risk Management […] [3]. These frameworks have some features in common with the AI RMF [3].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 903,
-        "output_tokens": 168,
+        "input_tokens": 819,
+        "output_tokens": 223,
         "embedding_tokens": 11
       },
       "source_retrieved": true,
@@ -73,14 +73,14 @@
         "valid",
         "reliable"
       ],
-      "latency_ms": 14.7,
-      "service_latency_ms": 14.0,
-      "answer": "Based on the ingested documents: Valid & Reliable is a necessary condition of trustworthiness and is shown as the base for other trustworthiness characteristics [1]. Accountable & Transparent is shown as a vertical box because it relates to all other characteristics [1]. Trustworthy AI Characteristic: Safe, Explainable and Interpretable [2]. Valid & Reliable is a necessary condition of trustworthiness and is shown as the base for other trustworthi- ness characteristics [3]. Accountable & Transparent is shown as a vertical box because it relates to all other characteristics [3].",
+      "latency_ms": 5.9,
+      "service_latency_ms": 4.8,
+      "answer": "Based on the ingested documents: Valid & Reliable is a necessary condition of trustworthiness and is shown as the base for other trustworthiness characteristics [1]. Accountable & Transparent is shown as a vertical box because it relates to all other characteristics [1]. Valid & Reliable is a necessary condition of trustworthiness and is shown as the base for other trustworthi- ness characteristics [2]. Accountable & Transparent is shown as a vertical box because it relates to all other characteristics [2]. to build the science necessary for safe, secure, and trustworthy development and use of AI [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 734,
-        "output_tokens": 146,
+        "input_tokens": 789,
+        "output_tokens": 152,
         "embedding_tokens": 10
       },
       "source_retrieved": true,
@@ -102,14 +102,14 @@
         "playbook",
         "navigate"
       ],
-      "latency_ms": 15.1,
-      "service_latency_ms": 14.4,
-      "answer": "Based on the ingested documents: Along with the AI RMF, the Playbook is part of the NIST Trustworthy and Responsible AI Resource Center [1]. https://airc.nist.gov/AI_RMF_Knowledge_Base/AI_RMF/Appendices/Appendix_B National Institute of Standards and Technology (2023) AI RMF Playbook [2]. NIST plans to update the AI RMF Playbook frequently [3]. Comments on the AI RMF Playbook may be sent via email to AIframework@nist.gov at any time and will be reviewed and integrated on a semi-annual basis [3].",
+      "latency_ms": 5.1,
+      "service_latency_ms": 4.2,
+      "answer": "Based on the ingested documents: Along with the AI RMF, the Playbook is part of the NIST Trustworthy and Responsible AI Resource Center [1]. The AI RMF is intended to be used by AI actors across the AI lifecycle and dimensions [3]. The OECD has developed a framework for classifying AI lifecycle activities according to five key socio-technical dimensions, each with properties relevant for AI policy and gover- nance, including risk management [OECD (2022) OECD Framework for the Classification of AI systems — OECD Digital Economy Papers] [3]. Additional resources related to the Framework are included in the AI RMF Playbook, which is available via the NIST AI RMF website: https://www.nist.gov/itl/ai-risk-management-framework [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 850,
-        "output_tokens": 124,
+        "input_tokens": 872,
+        "output_tokens": 183,
         "embedding_tokens": 10
       },
       "source_retrieved": true,
@@ -131,20 +131,24 @@
         "pro-innovation",
         "risk-based"
       ],
-      "latency_ms": 14.8,
-      "service_latency_ms": 14.1,
-      "answer": "Based on the ingested documents: https://www.nist.gov/itl/ai-risk-management-framework National Institute of Standards and Technology (2023) AI Risk Management Framework, Chapter 3: AI Risks and Trustworthiness [1]. https://airc.nist.gov/AI_RMF_Knowledge_Base/AI_RMF/Foundational_Information/3-sec-characteristics National Institute of Standards and Technology (2023) AI Risk Management Framework, Chapter 6: AI RMF Proﬁles [1]. NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 [2]. Priority research and additional guidance that will enhance this Framework will be captured in an associated AI Risk Management Framework Roadmap to which NIST and the broader community can contribute [3].",
+      "latency_ms": 5.1,
+      "service_latency_ms": 4.1,
+      "answer": "Based on the ingested documents: Be risk-based, resource-efficient, pro-innovation, and voluntary [1]. Introduction This document is a cross-sectoral proﬁle of and companion resource for the AI Risk Management Framework (AI RMF 1.0) for Generative AI,1 pursuant to President Biden’s Executive Order (EO) 14110 on Safe, Secure, and Trustworthy Artiﬁcial Intelligence.2 The AI RMF was released in January 2023, and is intended for voluntary use and to improve the ability of organizations to incorporate […] [2]. A proﬁle is an implementation of the AI RMF functions, categories, and subcategories for a speciﬁc setting, application, or technology – in this case, Generative AI (GAI) – based on the requirements, risk tolerance, and resources of the Framework user [2]. NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 588,
-        "output_tokens": 218,
+        "input_tokens": 698,
+        "output_tokens": 251,
         "embedding_tokens": 8
       },
       "source_retrieved": true,
       "source_cited": true,
-      "term_coverage": 0.0,
-      "matched_terms": [],
+      "term_coverage": 1.0,
+      "matched_terms": [
+        "voluntary",
+        "pro-innovation",
+        "risk-based"
+      ],
       "citation_count": 4,
       "used_citation_count": 3,
       "grounded": true
@@ -159,14 +163,14 @@
         "information integrity",
         "intellectual property"
       ],
-      "latency_ms": 15.2,
-      "service_latency_ms": 14.5,
-      "answer": "Based on the ingested documents: NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 [1]. NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 July 2024 U.S [2]. Department of Commerce Gina M [2]. An AI RMF Current Profile indicates how AI is currently being managed and the related risks in terms of current outcomes [4]. A Target Profile indicates the outcomes needed to achieve the desired or target AI risk management goals [4].",
+      "latency_ms": 5.1,
+      "service_latency_ms": 4.1,
+      "answer": "Based on the ingested documents: [1] Source: nist-genai-profile.pdf, page 60 [1]. (2024) The Operational Risks of AI in Large-Scale Biological Attacks [1]. For example, while recent developments in the capabilities of generative AI models have created exciting opportunities, they have also sparked new debates about potential AI risks.39 As AI research and development continues at pace and scale, we expect to see even greater impact and public awareness of AI risks [3]. NIST AI 100-1 AI RMF 1.0 Practices related to managing AI risks are described in the NIST AI RMF Playbook [4]. Table 4 lists the MANAGE function’s categories and subcategories [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 548,
-        "output_tokens": 198,
+        "input_tokens": 761,
+        "output_tokens": 163,
         "embedding_tokens": 10
       },
       "source_retrieved": true,
@@ -187,9 +191,9 @@
         "false",
         "hallucinations"
       ],
-      "latency_ms": 15.6,
-      "service_latency_ms": 14.9,
-      "answer": "Based on the ingested documents: NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 [1]. NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 July 2024 U.S [2]. Department of Commerce Gina M [2]. The GOVERN function provides organizations with the opportunity to clarify and define the roles and responsibilities for the humans in the Human-AI team configurations and those who are overseeing the AI system performance [3]. The GOVERN function also creates mechanisms for organizations to make their decision-making processes more explicit, to help counter systemic biases [3].",
+      "latency_ms": 4.6,
+      "service_latency_ms": 3.6,
+      "answer": "Based on the ingested documents: NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 [1]. The GOVERN function provides organizations with the opportunity to clarify and define the roles and responsibilities for the humans in the Human-AI team configurations and those who are overseeing the AI system performance [2]. The GOVERN function also creates mechanisms for organizations to make their decision-making processes more explicit, to help counter systemic biases [2]. NIST Trustworthy and Responsible AI NIST AI 600-1 Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile This publication is available free of charge from: https://doi.org/10.6028/NIST.AI.600-1 July 2024 U.S [3]. Department of Commerce Gina M [3].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
@@ -215,14 +219,14 @@
         "radiological",
         "nuclear"
       ],
-      "latency_ms": 15.3,
-      "service_latency_ms": 14.6,
-      "answer": "Based on the ingested documents: CBRN Information or Capabilities; Information Security [1]. CBRN Information or Capabilities; Dangerous, Violent, or Hateful Content AI Actor Tasks: Governance and Oversight [2]. Information Integrity; CBRN Information or Capabilities; Obscene, Degrading, and/or Abusive Content [3].",
+      "latency_ms": 4.6,
+      "service_latency_ms": 3.7,
+      "answer": "Based on the ingested documents: A proﬁle is an implementation of the AI RMF functions, categories, and subcategories for a speciﬁc setting, application, or technology – in this case, Generative AI (GAI) – based on the requirements, risk tolerance, and resources of the Framework user [1]. A pro-innovation approach to AI regulation 35 Case Study 3.5: What the principles mean for businesses in practice A fictional company, “Good AI Recruitment Limited”, provides recruitment services that use a range of AI systems to accelerate the recruitment process, including a service that automatically shortlists candidates based on application forms [2]. While potentially useful, such systems may discriminate against certain groups that have historically not been selected for certain positions [2]. CBRN Information or Capabilities; Information Security [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 641,
-        "output_tokens": 79,
+        "input_tokens": 882,
+        "output_tokens": 213,
         "embedding_tokens": 10
       },
       "source_retrieved": true,
@@ -244,22 +248,25 @@
         "accountability",
         "contestability"
       ],
-      "latency_ms": 15.0,
-      "service_latency_ms": 14.3,
-      "answer": "Based on the ingested documents: A pro-innovation approach to AI regulation 67 Part Five: Territorial application 5.1 Territorial application of the regulatory framework 113 [2]. Our AI regulation framework applies to the whole of the UK [2]. A pro-innovation approach to AI regulation 78 Annex B: Stakeholder engagement B.1 Summary In July 2022, we published a policy paper outlining our proposals for Establishing a pro-innovation approach to regulating AI.179 We proposed a non-statutory framework underpinned by a set of cross- sectoral principles including transparency, safety, and security [3]. The principles were intended to guide how regulators approach AI risks [3]. Our innovative approach to AI regulation uses a principles-based framework for regulators to interpret and apply to AI within their remits [4].",
+      "latency_ms": 4.5,
+      "service_latency_ms": 3.6,
+      "answer": "Based on the ingested documents: Existing regulators will be expected to implement the framework underpinned by five values- focused cross-sectoral principles: o Safety, security and robustness o Appropriate transparency and explainability o Fairness o Accountability and governance o Contestability and redress These build on, and reflect our commitment to, the Organisation for Economic Co-operation and Development (OECD) […] [2]. Our framework is underpinned by five principles to guide and inform the responsible development and use of AI in all sectors of the economy: o Safety, security and robustness o Appropriate transparency and explainability o Fairness o Accountability and governance o Contestability and redress 11 [3]. We will not put these principles on a statutory footing initially [3]. A pro-innovation approach to AI regulation 78 Annex B: Stakeholder engagement B.1 Summary In July 2022, we published a policy paper outlining our proposals for Establishing a pro-innovation approach to regulating AI.179 We proposed a non-statutory framework underpinned by a set of cross- sectoral principles including transparency, safety, and security [4]. The principles were intended to guide how regulators approach AI risks [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 889,
-        "output_tokens": 205,
+        "input_tokens": 855,
+        "output_tokens": 310,
         "embedding_tokens": 8
       },
       "source_retrieved": true,
       "source_cited": true,
-      "term_coverage": 0.4,
+      "term_coverage": 1.0,
       "matched_terms": [
         "safety",
-        "transparency"
+        "transparency",
+        "fairness",
+        "accountability",
+        "contestability"
       ],
       "citation_count": 4,
       "used_citation_count": 3,
@@ -274,14 +281,14 @@
         "non-statutory",
         "regulators"
       ],
-      "latency_ms": 14.5,
-      "service_latency_ms": 13.9,
-      "answer": "Based on the ingested documents: We will not put these principles on a statutory footing initially [1]. New rigid and onerous legislative requirements on businesses could hold back AI innovation and reduce our ability to respond quickly and in a proportionate way to future technological advances [1]. We will not put these principles on a statutory footing initially [2]. Initially, the principles will be issued by government on a non-statutory basis and applied by regulators within their remits [3]. We will support regulators to apply the principles using the powers and resources available to them [3].",
+      "latency_ms": 4.6,
+      "service_latency_ms": 3.7,
+      "answer": "Based on the ingested documents: We will not put these principles on a statutory footing initially [1]. New rigid and onerous legislative requirements on businesses could hold back AI innovation and reduce our ability to respond quickly and in a proportionate way to future technological advances [1]. We will not put these principles on a statutory footing initially [2]. Initially, the principles will be issued by government on a non-statutory basis and applied by regulators within their remits [4].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {
-        "input_tokens": 714,
-        "output_tokens": 152,
+        "input_tokens": 845,
+        "output_tokens": 125,
         "embedding_tokens": 10
       },
       "source_retrieved": true,
@@ -305,9 +312,9 @@
         "domain-specific",
         "proportionate"
       ],
-      "latency_ms": 14.6,
-      "service_latency_ms": 14.1,
-      "answer": "Based on the ingested documents: Some (non-exhaustive) examples of activities are: Multilateral AI engagement • OECD AI Governance Working Party (AI-GO): The UK is an active member of the OECD’s Working Party on AI Governance (AIGO), which supports the implementation of the OECD’s AI principles and enables the exchange of experience and best practice to advance the responsible stewardship of AI.165 • Global Partnership on AI […] [1]. A principles-based approach will enable regulation to keep pace with a fast-evolving technology Stakeholders generally agreed that a principles-based approach implemented by regulators would offer a proportionate way to build best practice [2]. Stakeholders felt the principles address the key risks that AI poses while allowing regulators to tailor approaches to their sectors [2]. Do you agree that, when implemented effectively, the revised cross-sectoral principles will cover the risks posed by AI technologies? [4].",
+      "latency_ms": 4.8,
+      "service_latency_ms": 3.9,
+      "answer": "Based on the ingested documents: A principles-based approach will enable regulation to keep pace with a fast-evolving technology Stakeholders generally agreed that a principles-based approach implemented by regulators would offer a proportionate way to build best practice [1]. Stakeholders felt the principles address the key risks that AI poses while allowing regulators to tailor approaches to their sectors [1]. Do you agree that, when implemented effectively, the revised cross-sectoral principles will cover the risks posed by AI technologies? [2]. Some (non-exhaustive) examples of activities are: Multilateral AI engagement • OECD AI Governance Working Party (AI-GO): The UK is an active member of the OECD’s Working Party on AI Governance (AIGO), which supports the implementation of the OECD’s AI principles and enables the exchange of experience and best practice to advance the responsible stewardship of AI.165 • Global Partnership on AI […] [3].",
       "mode": "local-extractive",
       "model": "local-extractive/1",
       "usage": {

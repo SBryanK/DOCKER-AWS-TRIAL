@@ -1,0 +1,154 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "backend": "qdrant",
+  "checks": [
+    {
+      "check": "GET /health returns 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET /health contract",
+      "status": "PASS",
+      "detail": "{\"status\": \"ok\", \"chunks\": 719, \"backend\": \"qdrant\", \"embedder\": \"local\", \"chat\": \"local\"}"
+    },
+    {
+      "check": "GET /stats returns 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET /stats contract",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET /stats backend matches health",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET / serves the demo UI",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET /docs serves Swagger UI",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "GET /openapi.json documents all routes",
+      "status": "PASS",
+      "detail": "/ask,/health,/ingest,/ingest/sample,/stats"
+    },
+    {
+      "check": "POST /ingest/sample returns 200",
+      "status": "PASS",
+      "detail": "{\"documents\":3,\"pages\":205,\"chunks\":719,\"total_chunks\":719,\"tokens\":71358,\"dim\":1024,\"embedding_model\":\"local-hashed-bow/1\",\"backend\":\"qdrant\",\"replaced\":true,\""
+    },
+    {
+      "check": "sample corpus ingested (3 docs, 205 pages, 719 chunks)",
+      "status": "PASS",
+      "detail": "{\"documents\": 3, \"pages\": 205, \"chunks\": 719}"
+    },
+    {
+      "check": "sample ingestion stays under 10 s",
+      "status": "PASS",
+      "detail": "2.28s"
+    },
+    {
+      "check": "POST /ask returns 200",
+      "status": "PASS",
+      "detail": "{\"answer\":\"Based on the ingested documents: Additional resources related to the Framework are included in the AI RMF Playbook, which is available via the NIST A"
+    },
+    {
+      "check": "answer is grounded with valid citations",
+      "status": "PASS",
+      "detail": "4 citations"
+    },
+    {
+      "check": "expected NIST source appears in citations",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "ask latency under 5 s",
+      "status": "PASS",
+      "detail": "0.01s"
+    },
+    {
+      "check": "unknown question returns 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "unknown question is refused, not hallucinated",
+      "status": "PASS",
+      "detail": "The ingested documents do not cover this."
+    },
+    {
+      "check": "short question is rejected (422)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "top_k out of range is rejected (422)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "missing question is rejected (422)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "unknown route returns 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "unsupported upload type is rejected (400)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "empty upload is rejected (400)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "POST /ingest accepts a text upload (201)",
+      "status": "PASS",
+      "detail": "{\"documents\":1,\"pages\":1,\"chunks\":1,\"total_chunks\":1,\"tokens\":34,\"dim\":1024,\"embedding_model\":\"local-hashed-bow/1\",\"backend\":\"qdrant\",\"replaced\":true,\"elapsed_s"
+    },
+    {
+      "check": "upload reset leaves only the uploaded document",
+      "status": "PASS",
+      "detail": "{\"documents\": 1, \"pages\": 1, \"chunks\": 1, \"total_chunks\": 1, \"tokens\": 34, \"dim\": 1024, \"embedding_model\": \"local-hashed-bow/1\", \"backend\": \"qdrant\", \"replaced\""
+    },
+    {
+      "check": "uploaded document is the only source",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "uploaded corpus can be queried with citations",
+      "status": "PASS",
+      "detail": "Based on the ingested documents: Data retention is limited to 24 months [1]. Incidents must be reported within 72 hours [1]."
+    },
+    {
+      "check": "sample corpus restored after upload test",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "final health reports 719 chunks",
+      "status": "PASS",
+      "detail": "{\"status\": \"ok\", \"chunks\": 719, \"backend\": \"qdrant\", \"embedder\": \"local\", \"chat\": \"local\"}"
+    }
+  ],
+  "passed": 29,
+  "failed": 0,
+  "total": 29
+}

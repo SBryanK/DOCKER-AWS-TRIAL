@@ -383,15 +383,14 @@ keamanan, trade-off, dan apa yang berubah di skala enterprise. Website GitHub Pa
 
 10 pertanyaan, masing-masing punya `expected_source` dan `expected_terms`. Yang diukur:
 
-- **latency** (client-side): p50 15 ms, p95 16 ms (offline mode);
+- **latency** (client-side): p50 4,8 ms, p95 7,6 ms (offline mode, stack Compose/Qdrant);
 - **source retrieved**: 100% (top-4);
 - **source cited**: 100%;
-- **term coverage**: 42%.
+- **term coverage**: 58,3%.
 
-Kenapa term coverage cuma 42%? Karena mode offline **menyalin kalimat**, bukan
-menjawab fluent. Itu batas atas mode lokal, bukan angka Bedrock. Angka Bedrock wajib
-diukur ulang setelah kredensial ada. Jangan pakai angka 42% di resume sebagai
-"answer quality Bedrock".
+Kenapa term coverage cuma 58%? Karena mode offline **menyalin kalimat**, bukan menjawab
+fluent. Itu batas atas mode lokal, bukan angka Bedrock. Angka Bedrock wajib diukur ulang
+setelah kredensial ada. Jangan pakai angka 58% di resume sebagai "answer quality Bedrock".
 
 ### Konsep 3 — biaya & model lifecycle
 
@@ -423,6 +422,71 @@ guardrails, dan eval retrieval di CI.
    → Misal ganti numpy brute-force + BM25 ke managed vector DB + reranker, karena
    latency/recall tidak scalable dan butuh HA; atau tambah auth/rate limit karena API
    publik tanpa proteksi.
+
+---
+
+## 5.1 Website portfolio: tema terang/gelap + Bahasa Indonesia
+
+Website ada di `docs/index.html` dan otomatis jadi GitHub Pages. Fitur barunya:
+
+- **Tombol tema** (ikon ☀️/🌙) di kanan atas: ganti dark ↔ light, pilihan disimpan di
+  `localStorage` browser.
+- **Tombol bahasa** (`ID`/`EN`): ganti seluruh halaman ke Bahasa Indonesia atau Inggris,
+  termasuk judul tab browser dan meta description.
+- **URL pintasan** untuk share/QA: `?theme=light&lang=id` atau `?theme=dark&lang=en`.
+  Contoh: `https://sbryank.github.io/DOCKER-AWS-TRIAL/?theme=light&lang=id`.
+- Default: mengikuti `prefers-color-scheme` laptop dan bahasa browser.
+
+**Cara kerjanya (analogi anak 10 tahun):** halaman punya "kamus" dua bahasa
+(`const I18N = { en: {...}, id: {...} }`). Setiap teks diberi label `data-i18n="kunci"`.
+Saat tombol bahasa diklik, JavaScript mengambil kalimat dari kamus yang cocok dan
+mengganti isi labelnya. Tema bekerja mirip: satu saklar di `<html data-theme="light|dark">`
+mengubah daftar warna (`CSS variables`) untuk seluruh halaman.
+
+**Deploy sendiri (langkah persis):**
+
+1. Edit `docs/index.html` (tema/warna/teks) di laptop.
+2. `git add -A && git commit -m "update website" && git push`.
+3. Buka repo GitHub → **Settings → Pages**.
+4. Bagian **Build and deployment**: Source = **Deploy from a branch**,
+   Branch = **main**, folder = **/docs**, lalu **Save**.
+5. Tunggu tab **Actions** → workflow *pages build and deployment* selesai (±30 detik).
+6. Buka `https://sbryank.github.io/DOCKER-AWS-TRIAL/` dan coba kedua tombol di kanan atas.
+
+**Menambah bahasa baru (misal Jepang):** tambahkan blok `ja: { ... }` di objek `I18N`
+dengan kunci yang sama, lalu tambahkan tombol/siklus bahasa di JavaScript. Tidak perlu
+framework, tidak perlu build step.
+
+**Test otomatis website:** screenshot dan pengecekan tema/bahasa dilakukan dengan headless
+Chrome (DevTools Protocol): klik tombol, cek atribut `data-theme`/`lang`, cek `localStorage`,
+dan memastikan **0 exception JavaScript**. Hasilnya `passed: true`.
+
+## 5.2 Functional test: 29/29 lolos
+
+Jalankan (stack harus hidup):
+
+```bash
+docker compose up -d --build
+.venv/bin/python -m scripts.functional_test
+```
+
+Yang diuji:
+
+- `/`, `/docs`, `/openapi.json`, `/health`, `/stats`;
+- `/ingest/sample` (3 dokumen, 205 halaman, 719 chunk, <10 detik);
+- `/ask` dengan sitasi + sumber NIST + latensi;
+- pertanyaan di luar korpus → menolak dengan jujur, bukan mengarang;
+- validasi 422 (pertanyaan pendek, `top_k` 99, field kosong);
+- upload `.exe` dan file kosong → 400;
+- upload `.txt` + reset → hanya dokumen itu yang tersimpan, lalu bisa ditanya;
+- restore korpus sampel → kembali 719 chunk;
+- 404 untuk route tidak dikenal.
+
+**Yang belum bisa dites tanpa akun AWS** (nanti setelah `aws configure sso`):
+`scripts/check_bedrock.py` (model access, ID, Converse, budget), `scripts/setup_budget.py`
+(pembuatan budget USD 5), dan kualitas jawaban Bedrock asli lewat `scripts/run_eval.py`.
+Tanpa kredensial, ketiga script itu memang menampilkan pesan error yang jelas — itu
+perilaku yang benar, bukan bug.
 
 ---
 
